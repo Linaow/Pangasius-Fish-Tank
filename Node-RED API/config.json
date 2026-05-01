@@ -1,0 +1,726 @@
+[
+    {
+        "id": "7aed1c33a93d3571",
+        "type": "tab",
+        "label": "Flow kimi - SQLite Enhanced",
+        "disabled": true,
+        "info": "Merged flow with SQLite database persistence, alert thresholds, history, and CSV export.",
+        "env": []
+    },
+    {
+        "id": "3aceac524a1a5d0c",
+        "type": "inject",
+        "z": "7aed1c33a93d3571",
+        "name": "Init DB on start",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.5,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 160,
+        "y": 40,
+        "wires": [
+            [
+                "6a4bc70341de5395"
+            ]
+        ]
+    },
+    {
+        "id": "6a4bc70341de5395",
+        "type": "function",
+        "z": "7aed1c33a93d3571",
+        "name": "Create Tables",
+        "func": "// Create all three tables if they don't exist yet\nmsg.topic = `\n  CREATE TABLE IF NOT EXISTS sensor_readings (\n    id        INTEGER PRIMARY KEY AUTOINCREMENT,\n    ts        DATETIME DEFAULT CURRENT_TIMESTAMP,\n    temp      REAL,\n    tds       REAL,\n    turbidity REAL,\n    species   TEXT\n  );\n  CREATE TABLE IF NOT EXISTS actuator_history (\n    id        INTEGER PRIMARY KEY AUTOINCREMENT,\n    ts        DATETIME DEFAULT CURRENT_TIMESTAMP,\n    heat      INTEGER,\n    filter    INTEGER,\n    air       INTEGER,\n    species   TEXT\n  );\n  CREATE TABLE IF NOT EXISTS system_alerts (\n    id        INTEGER PRIMARY KEY AUTOINCREMENT,\n    ts        DATETIME DEFAULT CURRENT_TIMESTAMP,\n    level     TEXT,\n    message   TEXT,\n    species   TEXT\n  );\n`;\n// CRITICAL FIX: Clear payload to avoid SQLITE_RANGE error\nmsg.payload = \"\";\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 380,
+        "y": 40,
+        "wires": [
+            [
+                "f8110b0cc1466d80"
+            ]
+        ]
+    },
+    {
+        "id": "f8110b0cc1466d80",
+        "type": "sqlite",
+        "z": "7aed1c33a93d3571",
+        "mydb": "bae03b214fe52589",
+        "sqlquery": "msg.topic",
+        "sql": "",
+        "name": "Aquarium DB Init",
+        "x": 620,
+        "y": 40,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "5adf26a84d661cbc",
+        "type": "http in",
+        "z": "7aed1c33a93d3571",
+        "name": "",
+        "url": "/update-water",
+        "method": "post",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 150,
+        "y": 140,
+        "wires": [
+            [
+                "f7b7fe37fbb48d03",
+                "5dab76772ee8b6b7"
+            ]
+        ]
+    },
+    {
+        "id": "5dab76772ee8b6b7",
+        "type": "debug",
+        "z": "7aed1c33a93d3571",
+        "name": "debug update-water",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 350,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "f7b7fe37fbb48d03",
+        "type": "json",
+        "z": "7aed1c33a93d3571",
+        "name": "Parse JSON",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 350,
+        "y": 140,
+        "wires": [
+            [
+                "c930c3559b621610"
+            ]
+        ]
+    },
+    {
+        "id": "c930c3559b621610",
+        "type": "function",
+        "z": "7aed1c33a93d3571",
+        "name": "Store Sensors + Check Alerts",
+        "func": "// --- 1. Save sensor data to memory (existing behaviour) ---\nlet data = msg.payload;\nif (typeof data === 'string') {\n    try { data = JSON.parse(data); } catch(e) {}\n}\nflow.set('latestData', data);\n\nconst d = data;\nconst species = flow.get('selectedFish') || 'tilapia';\n\n// --- 2. Build SQL for SQLite ---\nmsg.topic = `INSERT INTO sensor_readings (temp, tds, turbidity, species)\n  VALUES (${parseFloat(d.temp)||0}, ${parseFloat(d.tds)||0}, ${parseFloat(d.turbidity)||0}, '${species}');`;\n\n// --- 3. Alert thresholds per species ---\nconst thresholds = {\n  tilapia:    { tempMin:20, tempMax:32, tdsMax:600, turbMax:150 },\n  pangasius:  { tempMin:22, tempMax:30, tdsMax:500, turbMax:200 },\n  zebra_fish: { tempMin:20, tempMax:28, tdsMax:400, turbMax:100 }\n};\nconst thr = thresholds[species] || thresholds.tilapia;\nconst alerts = [];\n\nif (d.temp < thr.tempMin) alerts.push({ level:'WARNING', message:`Temperature too low: ${parseFloat(d.temp).toFixed(1)}°C (min ${thr.tempMin}°C)` });\nif (d.temp > thr.tempMax) alerts.push({ level:'CRITICAL', message:`Temperature too high: ${parseFloat(d.temp).toFixed(1)}°C (max ${thr.tempMax}°C)` });\nif (d.tds  > thr.tdsMax)  alerts.push({ level:'WARNING', message:`TDS too high: ${Math.round(d.tds)}ppm (max ${thr.tdsMax}ppm)` });\nif (d.turbidity > thr.turbMax) alerts.push({ level:'CRITICAL', message:`Turbidity critical: ${parseFloat(d.turbidity).toFixed(1)}NTU (max ${thr.turbMax}NTU)` });\n\n// Store pending alerts for follow-up processing\nflow.set('pendingAlerts', alerts.map(a => ({\n  topic: `INSERT INTO system_alerts (level, message, species) VALUES ('${a.level}','${a.message.replace(/'/g,\"''\")}','${species}');`\n})));\n\n// CRITICAL FIX: Clear payload to avoid SQLITE_RANGE error when using msg.topic\n// The sqlite node will use msg.topic as the query and return results in msg.payload\nmsg.payload = \"\";\n\n// Also store the original sensor data and species for the response builder\nmsg._sensorData = d;\nmsg._species = species;\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 570,
+        "y": 140,
+        "wires": [
+            [
+                "784f4ca894d1a305"
+            ]
+        ]
+    },
+    {
+        "id": "784f4ca894d1a305",
+        "type": "sqlite",
+        "z": "7aed1c33a93d3571",
+        "mydb": "bae03b214fe52589",
+        "sqlquery": "msg.topic",
+        "sql": "",
+        "name": "Write Sensor Reading",
+        "x": 800,
+        "y": 140,
+        "wires": [
+            [
+                "e1aaa7642d04eef7",
+                "f1cb8e2834071850"
+            ]
+        ]
+    },
+    {
+        "id": "e1aaa7642d04eef7",
+        "type": "function",
+        "z": "7aed1c33a93d3571",
+        "name": "Write Pending Alerts",
+        "func": "const pending = flow.get('pendingAlerts') || [];\nif (pending.length === 0) return null;\n// Send them one at a time by returning an array of messages\nconst msgs = pending.map(p => {\n    const m = { topic: p.topic, payload: \"\" };\n    return m;\n});\nreturn [msgs];",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1050,
+        "y": 120,
+        "wires": [
+            [
+                "48deca9c5d5eb1f0"
+            ]
+        ]
+    },
+    {
+        "id": "48deca9c5d5eb1f0",
+        "type": "sqlite",
+        "z": "7aed1c33a93d3571",
+        "mydb": "bae03b214fe52589",
+        "sqlquery": "msg.topic",
+        "sql": "",
+        "name": "Write Alert",
+        "x": 1270,
+        "y": 120,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "f1cb8e2834071850",
+        "type": "function",
+        "z": "7aed1c33a93d3571",
+        "name": "Build ESP32 Response",
+        "func": "// Get actuator state (from memory or DB)\nconst actuatorState = flow.get('actuatorState') || { heat: false, filter: false, air: false };\nconst manual = flow.get('manualOverride') || { active: false };\nconst selectedFish = msg._species || flow.get('selectedFish') || 'tilapia';\n\nmsg.payload = {\n    status: 'ok',\n    species: selectedFish,\n    override: manual.active,\n    heat: actuatorState.heat,\n    filter: actuatorState.filter,\n    air: actuatorState.air\n};\nmsg.statusCode = 200;\nmsg.headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1050,
+        "y": 160,
+        "wires": [
+            [
+                "d0e109e251ab2e3b"
+            ]
+        ]
+    },
+    {
+        "id": "d0e109e251ab2e3b",
+        "type": "http response",
+        "z": "7aed1c33a93d3571",
+        "name": "Respond to ESP32",
+        "statusCode": "",
+        "headers": {},
+        "x": 1270,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "66a10e87088205d8",
+        "type": "http in",
+        "z": "7aed1c33a93d3571",
+        "name": "",
+        "url": "/get-data",
+        "method": "get",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 150,
+        "y": 260,
+        "wires": [
+            [
+                "d756f9d34dae89fe"
+            ]
+        ]
+    },
+    {
+        "id": "d756f9d34dae89fe",
+        "type": "function",
+        "z": "7aed1c33a93d3571",
+        "name": "Query Latest Data",
+        "func": "const selectedFish = flow.get('selectedFish') || 'tilapia';\n\n// Query the most recent sensor reading from the database\nmsg.topic = `SELECT temp, tds, turbidity, species FROM sensor_readings ORDER BY ts DESC LIMIT 1;`;\nmsg._selectedFish = selectedFish;\n\n// CRITICAL FIX: Clear payload to avoid SQLITE_RANGE error\nmsg.payload = \"\";\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 350,
+        "y": 260,
+        "wires": [
+            [
+                "a2f352c74f693817"
+            ]
+        ]
+    },
+    {
+        "id": "a2f352c74f693817",
+        "type": "sqlite",
+        "z": "7aed1c33a93d3571",
+        "mydb": "bae03b214fe52589",
+        "sqlquery": "msg.topic",
+        "sql": "",
+        "name": "Read Latest Sensor",
+        "x": 570,
+        "y": 260,
+        "wires": [
+            [
+                "9b3417796e9cd762"
+            ]
+        ]
+    },
+    {
+        "id": "9b3417796e9cd762",
+        "type": "function",
+        "z": "7aed1c33a93d3571",
+        "name": "Build /get-data Response",
+        "func": "// msg.payload now contains the query result from sqlite node (array of rows)\nconst rows = msg.payload || [];\nconst latest = rows[0] || {};\n\nconst aiData = flow.get('aiData') || { detected_species:'--', count:0, avg_size:'0 cm', confidence:0 };\nconst selectedFish = msg._selectedFish || flow.get('selectedFish') || 'tilapia';\nconst actuatorState = flow.get('actuatorState') || { heat: false, filter: false, air: false };\nconst manual = flow.get('manualOverride') || { active: false };\n\nmsg.payload = {\n  sensors: {\n    temp:      parseFloat(latest.temp)      || 0,\n    tds:       parseFloat(latest.tds)       || 0,\n    turbidity: parseFloat(latest.turbidity) || 0\n  },\n  actuators: actuatorState,\n  ai: aiData,\n  selectedFish: selectedFish,\n  mode: manual.active ? 'manual' : 'auto'\n};\nmsg.headers = { 'Access-Control-Allow-Origin':'*', 'Content-Type':'application/json' };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 820,
+        "y": 260,
+        "wires": [
+            [
+                "5128d3248c2dac6d"
+            ]
+        ]
+    },
+    {
+        "id": "5128d3248c2dac6d",
+        "type": "http response",
+        "z": "7aed1c33a93d3571",
+        "name": "HTTP Response",
+        "statusCode": "",
+        "headers": {},
+        "x": 1030,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "b093a76777cd866d",
+        "type": "http in",
+        "z": "7aed1c33a93d3571",
+        "name": "",
+        "url": "/set-fish",
+        "method": "get",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 150,
+        "y": 340,
+        "wires": [
+            [
+                "a4e2a78734987fde"
+            ]
+        ]
+    },
+    {
+        "id": "a4e2a78734987fde",
+        "type": "function",
+        "z": "7aed1c33a93d3571",
+        "name": "Set Fish Species",
+        "func": "const type = msg.req.query.type || 'tilapia';\nflow.set('selectedFish', type);\nmsg.payload = { status:'ok', species: type };\nmsg.headers = { 'Access-Control-Allow-Origin':'*', 'Content-Type':'application/json' };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 370,
+        "y": 340,
+        "wires": [
+            [
+                "b1120b7f0ae346fd"
+            ]
+        ]
+    },
+    {
+        "id": "b1120b7f0ae346fd",
+        "type": "http response",
+        "z": "7aed1c33a93d3571",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 570,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "74c5b8a682f1bc56",
+        "type": "http in",
+        "z": "7aed1c33a93d3571",
+        "name": "",
+        "url": "/set-actuators",
+        "method": "post",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 150,
+        "y": 420,
+        "wires": [
+            [
+                "cfab4d87729eef02"
+            ]
+        ]
+    },
+    {
+        "id": "cfab4d87729eef02",
+        "type": "json",
+        "z": "7aed1c33a93d3571",
+        "name": "Parse Actuator JSON",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 350,
+        "y": 420,
+        "wires": [
+            [
+                "2bdc6a4cf984d1f4"
+            ]
+        ]
+    },
+    {
+        "id": "2bdc6a4cf984d1f4",
+        "type": "function",
+        "z": "7aed1c33a93d3571",
+        "name": "Save Actuator States",
+        "func": "const d = msg.payload;\nif (typeof d === 'string') {\n    try { d = JSON.parse(d); } catch(e) {}\n}\n\n// Save to memory\nconst actuatorState = {\n    heat:   d.heat   === true || d.heat   === 1,\n    filter: d.filter === true || d.filter === 1,\n    air:    d.air    === true || d.air    === 1\n};\nflow.set('actuatorState', actuatorState);\nflow.set('manualOverride', {\n    active: d.active === true,\n    heat: actuatorState.heat,\n    filter: actuatorState.filter,\n    air: actuatorState.air\n});\n\nconst species = flow.get('selectedFish') || 'tilapia';\n\n// Build SQL for SQLite\nmsg.topic = `INSERT INTO actuator_history (heat, filter, air, species)\n  VALUES (${actuatorState.heat?1:0}, ${actuatorState.filter?1:0}, ${actuatorState.air?1:0}, '${species}');`;\n\n// CRITICAL FIX: Clear payload to avoid SQLITE_RANGE error\nmsg.payload = \"\";\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 570,
+        "y": 420,
+        "wires": [
+            [
+                "d63988bf690d99c9"
+            ]
+        ]
+    },
+    {
+        "id": "d63988bf690d99c9",
+        "type": "sqlite",
+        "z": "7aed1c33a93d3571",
+        "mydb": "bae03b214fe52589",
+        "sqlquery": "msg.topic",
+        "sql": "",
+        "name": "Write Actuator Row",
+        "x": 800,
+        "y": 420,
+        "wires": [
+            [
+                "984d8ff10279b169"
+            ]
+        ]
+    },
+    {
+        "id": "984d8ff10279b169",
+        "type": "function",
+        "z": "7aed1c33a93d3571",
+        "name": "Actuator Response",
+        "func": "msg.payload = { status:'success' };\nmsg.headers = { 'Access-Control-Allow-Origin':'*', 'Content-Type':'application/json' };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1020,
+        "y": 420,
+        "wires": [
+            [
+                "a76f8206aacc0137"
+            ]
+        ]
+    },
+    {
+        "id": "a76f8206aacc0137",
+        "type": "http response",
+        "z": "7aed1c33a93d3571",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1200,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "642b3c176393e818",
+        "type": "http in",
+        "z": "7aed1c33a93d3571",
+        "name": "",
+        "url": "/get-history",
+        "method": "get",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 150,
+        "y": 500,
+        "wires": [
+            [
+                "6cee8e3744085a09"
+            ]
+        ]
+    },
+    {
+        "id": "6cee8e3744085a09",
+        "type": "function",
+        "z": "7aed1c33a93d3571",
+        "name": "Query History",
+        "func": "// ?range=1h|6h|24h|7d — defaults to 1h\nconst range = (msg.req.query.range || '1h');\nconst intervals = { '1h':'1 hour', '6h':'6 hours', '24h':'24 hours', '7d':'7 days' };\nconst since = intervals[range] || '1 hour';\n\nmsg.topic = `\n  SELECT ts, temp, tds, turbidity, species\n  FROM sensor_readings\n  WHERE ts >= datetime('now', '-${since}')\n  ORDER BY ts ASC\n  LIMIT 500;\n`;\n// CRITICAL FIX: Clear payload\nmsg.payload = \"\";\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 370,
+        "y": 500,
+        "wires": [
+            [
+                "674a3f95247412e9"
+            ]
+        ]
+    },
+    {
+        "id": "674a3f95247412e9",
+        "type": "sqlite",
+        "z": "7aed1c33a93d3571",
+        "mydb": "bae03b214fe52589",
+        "sqlquery": "msg.topic",
+        "sql": "",
+        "name": "Read History",
+        "x": 580,
+        "y": 500,
+        "wires": [
+            [
+                "21d092d97c149dc2"
+            ]
+        ]
+    },
+    {
+        "id": "21d092d97c149dc2",
+        "type": "function",
+        "z": "7aed1c33a93d3571",
+        "name": "Format History Response",
+        "func": "msg.headers = { 'Access-Control-Allow-Origin':'*', 'Content-Type':'application/json' };\n// msg.payload is already the array of rows from sqlite node\nmsg.payload = msg.payload || [];\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 820,
+        "y": 500,
+        "wires": [
+            [
+                "d7a1cf5c1c28c33f"
+            ]
+        ]
+    },
+    {
+        "id": "d7a1cf5c1c28c33f",
+        "type": "http response",
+        "z": "7aed1c33a93d3571",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1030,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "4ceff2a7ac994117",
+        "type": "http in",
+        "z": "7aed1c33a93d3571",
+        "name": "",
+        "url": "/get-alerts",
+        "method": "get",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 150,
+        "y": 580,
+        "wires": [
+            [
+                "2bea80dcc93e2dab"
+            ]
+        ]
+    },
+    {
+        "id": "2bea80dcc93e2dab",
+        "type": "function",
+        "z": "7aed1c33a93d3571",
+        "name": "Query Alerts",
+        "func": "msg.topic = `\n  SELECT id, ts, level, message, species\n  FROM system_alerts\n  ORDER BY ts DESC\n  LIMIT 50;\n`;\n// CRITICAL FIX: Clear payload\nmsg.payload = \"\";\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 370,
+        "y": 580,
+        "wires": [
+            [
+                "a1cecf520a51804c"
+            ]
+        ]
+    },
+    {
+        "id": "a1cecf520a51804c",
+        "type": "sqlite",
+        "z": "7aed1c33a93d3571",
+        "mydb": "bae03b214fe52589",
+        "sqlquery": "msg.topic",
+        "sql": "",
+        "name": "Read Alerts",
+        "x": 580,
+        "y": 580,
+        "wires": [
+            [
+                "678533e4f3086515"
+            ]
+        ]
+    },
+    {
+        "id": "678533e4f3086515",
+        "type": "function",
+        "z": "7aed1c33a93d3571",
+        "name": "Format Alerts Response",
+        "func": "msg.headers = { 'Access-Control-Allow-Origin':'*', 'Content-Type':'application/json' };\nmsg.payload = msg.payload || [];\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 820,
+        "y": 580,
+        "wires": [
+            [
+                "24ebf6fdaaff7f95"
+            ]
+        ]
+    },
+    {
+        "id": "24ebf6fdaaff7f95",
+        "type": "http response",
+        "z": "7aed1c33a93d3571",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1030,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "3dfe9b257116fcec",
+        "type": "http in",
+        "z": "7aed1c33a93d3571",
+        "name": "",
+        "url": "/export-csv",
+        "method": "get",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 150,
+        "y": 660,
+        "wires": [
+            [
+                "769fb0b5b863a39e"
+            ]
+        ]
+    },
+    {
+        "id": "769fb0b5b863a39e",
+        "type": "function",
+        "z": "7aed1c33a93d3571",
+        "name": "Query CSV Export",
+        "func": "const range = (msg.req.query.range || '24h');\nconst intervals = { '1h':'1 hour', '6h':'6 hours', '24h':'24 hours', '7d':'7 days' };\nconst since = intervals[range] || '24 hours';\nmsg._csvRange = range;\n\nmsg.topic = `\n  SELECT ts, temp, tds, turbidity, species\n  FROM sensor_readings\n  WHERE ts >= datetime('now','-${since}')\n  ORDER BY ts ASC;\n`;\n// CRITICAL FIX: Clear payload\nmsg.payload = \"\";\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 370,
+        "y": 660,
+        "wires": [
+            [
+                "6ee2c6ea633aa659"
+            ]
+        ]
+    },
+    {
+        "id": "6ee2c6ea633aa659",
+        "type": "sqlite",
+        "z": "7aed1c33a93d3571",
+        "mydb": "bae03b214fe52589",
+        "sqlquery": "msg.topic",
+        "sql": "",
+        "name": "Read for CSV",
+        "x": 580,
+        "y": 660,
+        "wires": [
+            [
+                "fb64b2bc5cc292ef"
+            ]
+        ]
+    },
+    {
+        "id": "fb64b2bc5cc292ef",
+        "type": "function",
+        "z": "7aed1c33a93d3571",
+        "name": "Build CSV",
+        "func": "const rows = msg.payload || [];\nlet csv = 'timestamp,temperature_C,tds_ppm,turbidity_NTU,species\\n';\nrows.forEach(r => {\n  csv += `${r.ts},${r.temp},${r.tds},${r.turbidity},${r.species}\\n`;\n});\nmsg.payload = csv;\nmsg.headers = {\n  'Access-Control-Allow-Origin': '*',\n  'Content-Type': 'text/csv',\n  'Content-Disposition': `attachment; filename=\"aquarium_${msg._csvRange || '24h'}.csv\"`\n};\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 820,
+        "y": 660,
+        "wires": [
+            [
+                "7e994ac2e3d2cb4b"
+            ]
+        ]
+    },
+    {
+        "id": "7e994ac2e3d2cb4b",
+        "type": "http response",
+        "z": "7aed1c33a93d3571",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1030,
+        "y": 660,
+        "wires": []
+    },
+    {
+        "id": "bae03b214fe52589",
+        "type": "sqlitedb",
+        "db": "CHANGE THIS TO DATABASE PATH",
+        "mode": "RWC"
+    },
+    {
+        "id": "bd1bf48750c6948a",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-node-sqlite": "2.0.1"
+        }
+    }
+]

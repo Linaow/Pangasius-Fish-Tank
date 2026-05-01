@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-Integrated Fish Tank</title>
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-orb orb1"></div>
+<div class="bg-orb orb2"></div>
+<div class="page">
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-icon">🐟</div>AI-Integrated Fish Tank
+  </div>
+  <div class="nav-links">
+    <a href="#dashboard">Dashboard</a>
+    <a href="#setpoints">Setpoints</a>
+    <a href="#ai">AI System</a>
+    <a href="#health">Health</a>
+    <a href="#team">Team</a>
+  </div>
+  <div class="nav-right">
+    <div class="status-pill"><div class="dot"></div><span id="conn-status">CONNECTING</span></div>
+    <button class="theme-btn" onclick="toggleTheme()">☀ Light Mode</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">⚡ Industrial Aquaculture Intelligence</div>
+  <h1>AI-integrated<span> Fish Tank</span><br>CONTROL SYSTEM</h1>
+  <p class="hero-sub">Real-time sensor monitoring, AI-driven feedback, and automated actuator control for precision aquaculture management.</p>
+  <div class="hero-stats">
+    <div class="hstat"><span class="hstat-n">3</span><span class="hstat-l">Species Profiles</span></div>
+    <div class="hstat"><span class="hstat-n">3</span><span class="hstat-l">Live Sensors</span></div>
+    <div class="hstat"><span class="hstat-n">3</span><span class="hstat-l">Actuators</span></div>
+    <div class="hstat"><span class="hstat-n">2s</span><span class="hstat-l">Update Cycle</span></div>
+  </div>
+  <div class="scroll-cue"><div class="scroll-box"></div>SCROLL</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- DASHBOARD -->
+<section class="sec" id="dashboard">
+  <div class="sec-hdr">
+    <span class="sec-tag">// 01 — Live Monitor</span>
+    <h2 class="sec-title">SYSTEM <span>DASHBOARD</span></h2>
+    <div class="sec-line"></div>
+  </div>
+
+  <div class="dash-grid">
+    <div class="dash-sidebar">
+
+      <div class="card">
+        <div class="card-lbl">Active Profile</div>
+        <div class="card-ttl">Select Species</div>
+        <div id="active-profile-banner" class="active-profile-banner">TILAPIA PROFILE ACTIVE</div>
+        <div class="spc-list">
+          <button class="spc-btn active" onclick="selectSpecies('tilapia',this)">
+            <span class="spc-icon">🐟</span>
+            <div><div class="spc-nm">Tilapia</div><div class="spc-sci">Oreochromis niloticus</div></div>
+          </button>
+          <button class="spc-btn" onclick="selectSpecies('pangasius',this)">
+            <span class="spc-icon">🐠</span>
+            <div><div class="spc-nm">Pangasius</div><div class="spc-sci">Pangasianodon hypophthalmus</div></div>
+          </button>
+          <button class="spc-btn" onclick="selectSpecies('zebra_fish',this)">
+            <span class="spc-icon">🐡</span>
+            <div><div class="spc-nm">Zebra Fish</div><div class="spc-sci">Danio rerio</div></div>
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-lbl">Relay Control</div>
+        <div class="mode-row">
+          <div class="card-ttl" style="margin:0">Actuator States</div>
+          <button id="mode-btn" class="theme-btn" style="font-size:.72rem;padding:4px 12px;" onclick="toggleMode()">AUTO</button>
+        </div>
+        <div class="act-list">
+          <div class="act-row" id="act-heat">
+            <div class="act-left"><span class="act-icon">🔥</span><span class="act-nm">Heater</span></div>
+            <span class="act-badge" id="badge-heat">OFF</span>
+          </div>
+          <div class="act-row" id="act-filter">
+            <div class="act-left"><span class="act-icon">💧</span><span class="act-nm">Filter</span></div>
+            <span class="act-badge" id="badge-filter">OFF</span>
+          </div>
+          <div class="act-row" id="act-air">
+            <div class="act-left"><span class="act-icon">💨</span><span class="act-nm">Aerator</span></div>
+            <span class="act-badge" id="badge-air">OFF</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ts">🕐 Last update: <span id="ts">--:--:--</span></div>
+    </div>
+
+    <!-- Sensors -->
+    <div>
+      <div class="sens-row">
+        <div class="card">
+          <div class="s-top"><span style="font-size:1.4rem">🌡️</span><div class="s-dot"></div></div>
+          <div class="sv" id="val-temp">--<span class="su">°C</span></div>
+          <div class="sn">Temperature</div>
+          <div class="sbar-w"><div class="sbar" id="bar-temp" style="width:0"></div></div>
+          <div class="ssp" id="sp-temp">Target: -- °C</div>
+        </div>
+        <div class="card">
+          <div class="s-top"><span style="font-size:1.4rem">⚗️</span><div class="s-dot"></div></div>
+          <div class="sv" id="val-tds">--<span class="su">ppm</span></div>
+          <div class="sn">TDS — Nutrients</div>
+          <div class="sbar-w"><div class="sbar" id="bar-tds" style="width:0"></div></div>
+          <div class="ssp" id="sp-tds">Range: -- – -- ppm</div>
+        </div>
+        <div class="card">
+          <div class="s-top"><span style="font-size:1.4rem">🌊</span><div class="s-dot"></div></div>
+          <div class="sv" id="val-turb">--<span class="su">NTU</span></div>
+          <div class="sn">Turbidity</div>
+          <div class="sbar-w"><div class="sbar" id="bar-turb" style="width:0"></div></div>
+          <div class="ssp" id="sp-turb">Max: -- NTU</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- SETPOINTS -->
+<section class="sec" id="setpoints">
+  <div class="sec-hdr">
+    <span class="sec-tag">// 02 — Configuration</span>
+    <h2 class="sec-title">SPECIES <span>SETPOINTS</span></h2>
+    <div class="sec-line"></div>
+  </div>
+
+  <div class="sp-grid">
+    <div class="card" id="card-pangasius">
+      <div class="sp-head">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:1.35rem">🐠</span>
+          <div class="card-ttl" style="margin:0">Pangasius</div>
+        </div>
+        <span class="sp-tag inactive" id="tag-pangasius">Profile 1</span>
+      </div>
+      <div class="sp-params">
+        <div class="p-row"><span class="p-lbl">Target Temperature</span><div class="p-val">28.0 <span>°C</span></div><div class="p-bar"><div class="p-bar-f" style="width:52%"></div></div></div>
+        <div class="p-row"><span class="p-lbl">TDS Range</span><div class="p-val">100 – 400 <span>ppm</span></div><div class="p-bar"><div class="p-bar-f" style="width:50%"></div></div></div>
+        <div class="p-row"><span class="p-lbl">Max Turbidity</span><div class="p-val">80 <span>NTU</span></div><div class="p-bar"><div class="p-bar-f" style="width:67%"></div></div></div>
+        <div class="p-row"><span class="p-lbl">Temp Hysteresis</span><div class="p-val">1 <span>°C</span></div><div class="p-bar"><div class="p-bar-f" style="width:10%"></div></div></div>
+      </div>
+    </div>
+
+    <div class="card" id="card-tilapia">
+      <div class="sp-head">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:1.35rem">🐟</span>
+          <div class="card-ttl" style="margin:0">Tilapia</div>
+        </div>
+        <span class="sp-tag" id="tag-tilapia">Active</span>
+      </div>
+      <div class="sp-params">
+        <div class="p-row"><span class="p-lbl">Target Temperature</span><div class="p-val">30.0 <span>°C</span></div><div class="p-bar"><div class="p-bar-f" style="width:56%"></div></div></div>
+        <div class="p-row"><span class="p-lbl">TDS Range</span><div class="p-val">200 – 500 <span>ppm</span></div><div class="p-bar"><div class="p-bar-f" style="width:60%"></div></div></div>
+        <div class="p-row"><span class="p-lbl">Max Turbidity</span><div class="p-val">100 <span>NTU</span></div><div class="p-bar"><div class="p-bar-f" style="width:50%"></div></div></div>
+        <div class="p-row"><span class="p-lbl">Temp Hysteresis</span><div class="p-val">2 <span>°C</span></div><div class="p-bar"><div class="p-bar-f" style="width:10%"></div></div></div>
+      </div>
+    </div>
+
+    <div class="card" id="card-zebra_fish">
+      <div class="sp-head">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:1.35rem">🐡</span>
+          <div class="card-ttl" style="margin:0">Zebra Fish</div>
+        </div>
+        <span class="sp-tag inactive" id="tag-zebra_fish">Profile 3</span>
+      </div>
+      <div class="sp-params">
+        <div class="p-row"><span class="p-lbl">Target Temperature</span><div class="p-val">26.0 <span>°C</span></div><div class="p-bar"><div class="p-bar-f" style="width:50%"></div></div></div>
+        <div class="p-row"><span class="p-lbl">TDS Range</span><div class="p-val">50 – 150 <span>ppm</span></div><div class="p-bar"><div class="p-bar-f" style="width:40%"></div></div></div>
+        <div class="p-row"><span class="p-lbl">Max Turbidity</span><div class="p-val">30 <span>NTU</span></div><div class="p-bar"><div class="p-bar-f" style="width:33%"></div></div></div>
+        <div class="p-row"><span class="p-lbl">Temp Hysteresis</span><div class="p-val">0.5 <span>°C</span></div><div class="p-bar"><div class="p-bar-f" style="width:10%"></div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+<div class="divider"></div>
+
+<!-- DATABASE -->
+<section class="sec" id="database">
+  <div class="sec-hdr">
+    <span class="sec-tag">// 04 — Persistent Storage</span>
+    <h2 class="sec-title">DATABASE <span>& HISTORY</span></h2>
+    <div class="sec-line"></div>
+  </div>
+
+  <div class="db-stats-row">
+    <div class="card" style="text-align:center;padding:20px;">
+      <div class="db-stat-n" id="stat-readings">--</div>
+      <div class="db-stat-l">Sensor Readings Stored</div>
+    </div>
+    <div class="card" style="text-align:center;padding:20px;">
+      <div class="db-stat-n" id="stat-alerts">--</div>
+      <div class="db-stat-l">Alerts Logged</div>
+    </div>
+    <div class="card" style="text-align:center;padding:20px;">
+      <div class="db-stat-n" id="stat-actuator">0</div>
+      <div class="db-stat-l">Actuator Events</div>
+    </div>
+  </div>
+
+  <div class="db-toolbar">
+    <span style="font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--text-muted);letter-spacing:2px;">RANGE:</span>
+    <button class="range-btn active" onclick="setRange('1h',this)">1H</button>
+    <button class="range-btn" onclick="setRange('6h',this)">6H</button>
+    <button class="range-btn" onclick="setRange('24h',this)">24H</button>
+    <button class="range-btn" onclick="setRange('7d',this)">7D</button>
+    <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
+  </div>
+
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-lbl">Historical</div>
+      <div class="card-ttl">Temperature (°C)</div>
+      <div class="chart-wrap"><canvas id="chart-temp"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-lbl">Historical</div>
+      <div class="card-ttl">TDS (ppm)</div>
+      <div class="chart-wrap"><canvas id="chart-tds"></canvas></div>
+    </div>
+  </div>
+  <div style="margin-bottom:20px;">
+    <div class="card">
+      <div class="card-lbl">Historical</div>
+      <div class="card-ttl">Turbidity (NTU)</div>
+      <div class="chart-wrap" style="height:180px;"><canvas id="chart-turb"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-lbl">Auto-Generated</div>
+    <div class="card-ttl" style="display:flex;align-items:center;justify-content:space-between;">
+      System Alerts
+      <span id="alert-count-badge" style="font-family:'Share Tech Mono',monospace;font-size:.7rem;
+        padding:3px 12px;border-radius:20px;background:rgba(255,68,68,.12);
+        color:var(--red);border:1px solid rgba(255,68,68,.25);">0 ALERTS</span>
+    </div>
+    <div class="alert-list" id="alert-list">
+      <div class="no-alerts">✓ No alerts — system nominal</div>
+    </div>
+  </div>
+</section>
+<!-- AI -->
+<section class="sec" id="ai">
+  <div class="sec-hdr">
+    <span class="sec-tag">// 03 — Intelligence Layer</span>
+    <h2 class="sec-title">AI <span>INTEGRATION</span></h2>
+    <div class="sec-line"></div>
+  </div>
+
+  <div class="ai-feats">
+    <div class="card ai-fc"><span class="ai-fi">🧠</span><div class="ai-ft">Smart Feedback</div><p class="ai-fd">Closed-loop sensor analysis with automated relay decisions based on species-specific thresholds and hysteresis logic.</p></div>
+    <div class="card ai-fc"><span class="ai-fi">👁️</span><div class="ai-ft">Vision Analysis</div><p class="ai-fd">Computer vision pipeline for fish detection, counting, and average size estimation from live camera feed.</p></div>
+    <div class="card ai-fc"><span class="ai-fi">📡</span><div class="ai-ft">IoT Telemetry</div><p class="ai-fd">ESP32 sends JSON telemetry to Node-RED every 5 seconds with full sensor and actuator state payload over HTTP POST.</p></div>
+  </div>
+
+  <div class="ai-pair">
+    <div class="card">
+      <div class="card-lbl">Vision Module</div>
+      <div class="card-ttl">Fish Detection</div>
+      <div class="ai-sg">
+        <div class="ai-s"><span class="ai-sl">Species</span><span class="ai-sv" id="ai-species" style="font-size:.95rem;margin-top:2px">--</span></div>
+        <div class="ai-s"><span class="ai-sl">Count</span><span class="ai-sv" id="ai-count">0</span></div>
+        <div class="ai-s"><span class="ai-sl">Avg Size</span><span class="ai-sv" id="ai-size" style="font-size:1.1rem">0 cm</span></div>
+        <div class="ai-s"><span class="ai-sl">Confidence</span><span class="ai-sv" id="ai-conf">--%</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-lbl">System Events</div>
+      <div class="card-ttl">Activity Log</div>
+      <div class="ai-log" id="ai-log">
+        <div class="log-e"><span class="log-t">--:--:--</span><span>Waiting for data...</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- HEALTH -->
+<section class="sec" id="health">
+  <div class="sec-hdr">
+    <span class="sec-tag">// 04 — Diagnostics</span>
+    <h2 class="sec-title">SYSTEM <span>HEALTH</span></h2>
+    <div class="sec-line"></div>
+  </div>
+  <div class="h-grid">
+    <div class="card h-card">
+      <div class="h-ring"><svg viewBox="0 0 90 90"><circle class="trk" cx="45" cy="45" r="38"/><circle class="fil" id="ring-wifi" cx="45" cy="45" r="38" stroke-dasharray="238.76" stroke-dashoffset="238.76"/></svg><span class="h-rv" id="pct-wifi">0%</span></div>
+      <div class="h-lbl">WiFi Signal</div>
+    </div>
+    <div class="card h-card">
+      <div class="h-ring"><svg viewBox="0 0 90 90"><circle class="trk" cx="45" cy="45" r="38"/><circle class="fil" id="ring-temp" cx="45" cy="45" r="38" stroke-dasharray="238.76" stroke-dashoffset="238.76"/></svg><span class="h-rv" id="pct-temp">0%</span></div>
+      <div class="h-lbl">Temp Sensor</div>
+    </div>
+    <div class="card h-card">
+      <div class="h-ring"><svg viewBox="0 0 90 90"><circle class="trk" cx="45" cy="45" r="38"/><circle class="fil" id="ring-tds" cx="45" cy="45" r="38" stroke-dasharray="238.76" stroke-dashoffset="238.76"/></svg><span class="h-rv" id="pct-tds">0%</span></div>
+      <div class="h-lbl">TDS Sensor</div>
+    </div>
+    <div class="card h-card">
+      <div class="h-ring"><svg viewBox="0 0 90 90"><circle class="trk" cx="45" cy="45" r="38"/><circle class="fil" id="ring-turb" cx="45" cy="45" r="38" stroke-dasharray="238.76" stroke-dashoffset="238.76"/></svg><span class="h-rv" id="pct-turb">0%</span></div>
+      <div class="h-lbl">Turbidity Sensor</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- TEAM -->
+<section class="sec" id="team">
+  <div class="sec-hdr">
+    <span class="sec-tag">// 05 — The People</span>
+    <h2 class="sec-title">MEET THE <span>TEAM</span></h2>
+    <div class="sec-line"></div>
+  </div>
+  <div class="team-grid">
+    <div class="card team-card"><div class="t-av">👨‍💻</div><div class="t-nm">Linah Elshorbagy</div><div class="t-role">Embedded Systems & AI Developer</div><p class="t-desc">ESP32 firmware, sensor integration, and real-time control logic.</p></div>
+    <div class="card team-card"><div class="t-av">👩‍🔬</div><div class="t-nm">Mayar Tarek</div><div class="t-role">Data Collector and Team Coordinator</div><p class="t-desc">Species profiles, water quality parameters, and biological thresholds.</p></div>
+    <div class="card team-card"><div class="t-av">👨‍🎨</div><div class="t-nm">Mervat Gharieb</div><div class="t-role">Team Researcher & Graphic Designer</div><p class="t-desc">Developed the UI and visual identity of the project.</p></div>
+    <div class="card team-card"><div class="t-av">👩‍💡</div><div class="t-nm">Ragad El-Halmoshy</div><div class="t-role">Team Researcher</div><p class="t-desc">Provides the team with accurate biological data.</p></div>
+  </div>
+</section>
+
+<footer><p>© 2026 <span>STEM Gharbiya</span> — AI-Integrated Fish Tank &nbsp;|&nbsp; Powered by ESP32 + Node-RED</p></footer>
+</div>
+<script src="script.js"></script>
+</body>
+</html>
