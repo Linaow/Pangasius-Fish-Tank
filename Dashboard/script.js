@@ -8,7 +8,7 @@ const SPECIES = {
   zebra_fish: { label:'Zebra Fish', targetTemp:26.0, tdsMin:50, tdsMax:150, maxTurbidity:30, hysteresis:0.5 }
 };
 
-const NODE_RED = 'http://192.168.1.17:1880';
+const NODE_RED = '';
 
 let currentSpecies = 'tilapia';
 let lastActuators  = null;
