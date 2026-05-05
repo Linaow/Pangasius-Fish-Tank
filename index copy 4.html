@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-Integrated Fish Tank</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Exo+2:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root, html[data-theme="dark"]{
+  --bg:#020c18;--bg2:#041020;
+  --navy:#0a1e35;--navy2:#0f2848;--navy3:#163560;
+  --gold:#f5c400;--gold2:#ffd740;--gold-glow:rgba(245,196,0,.18);--gold-dim:rgba(245,196,0,.07);
+  --cyan:#00d4ff;--cyan-glow:rgba(0,212,255,.15);
+  --green:#00e676;--red:#ff4d4d;--orange:#ff9800;
+  --text:#dde8f5;--text2:#8ea8c8;--text3:#4a6a8a;
+  --border:rgba(245,196,0,.12);--border2:rgba(0,212,255,.12);
+  --card:rgba(7,24,40,.85);
+  --r:14px;--r2:10px;
+  --shadow:0 8px 40px rgba(0,0,0,.55);
+  --fd:'Orbitron',monospace;
+  --fb:'Exo 2',sans-serif;
+  --fm:'JetBrains Mono',monospace;
+  --nav-bg: rgba(2,12,24,.93);
+  --scanline-color: rgba(0,0,0,.04);
+}
+html[data-theme="light"] {
+  --bg:#f5f5f5;--bg2:#e0e0e0;
+  --navy:#ffffff;--navy2:#f0f0f0;--navy3:#e8e8e8;
+  --gold:#b8860b;--gold2:#daa520;--gold-glow:rgba(184,134,11,.18);--gold-dim:rgba(184,134,11,.07);
+  --cyan:#0080ff;--cyan-glow:rgba(0,128,255,.15);
+  --green:#32cd32;--red:#dc143c;--orange:#ff8c00;
+  --text:#333333;--text2:#666666;--text3:#999999;
+  --border:rgba(184,134,11,.12);--border2:rgba(0,128,255,.12);
+  --card:rgba(255,255,255,.85);
+  --shadow:0 8px 40px rgba(0,0,0,.1);
+  --nav-bg: rgba(245,245,245,.93);
+  --scanline-color: rgba(0,0,0,.02);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;scroll-padding-top:70px;transition: background 0.3s ease, color 0.3s ease;}
+body{font-family:var(--fb);background:var(--bg);color:var(--text);overflow-x:hidden;cursor:none;transition: background 0.3s ease, color 0.3s ease;}
+
+/* CURSOR */
+.cursor-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);position:fixed;transform:translate(-50%,-50%);pointer-events:none;z-index:9999;transition:transform .08s;}
+/*.cursor-ring{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--gold);position:fixed;transform:translate(-50%,-50%);pointer-events:none;z-index:9998;transition:width .2s,height .2s,opacity .2s;}
+body.hov .cursor-ring{width:50px;height:50px;opacity:.5;}*/
+
+/* BG */
+.bg-layer{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.bg-grid{position:absolute;inset:0;
+  background-image:linear-gradient(rgba(0,212,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.025) 1px,transparent 1px);
+  background-size:56px 56px;animation:gridScroll 30s linear infinite;}
+@keyframes gridScroll{to{background-position:56px 56px;}}
+.orb{position:absolute;border-radius:50%;filter:blur(100px);animation:orbF ease-in-out infinite;}
+.orb1{width:800px;height:800px;top:-300px;left:-300px;background:radial-gradient(circle,rgba(245,196,0,.055),transparent 68%);animation-duration:22s;}
+.orb2{width:600px;height:600px;bottom:-200px;right:-200px;background:radial-gradient(circle,rgba(0,212,255,.05),transparent 68%);animation-duration:28s;animation-direction:reverse;}
+.orb3{width:450px;height:450px;top:40%;left:38%;background:radial-gradient(circle,rgba(0,230,118,.03),transparent 68%);animation-duration:19s;}
+@keyframes orbF{0%,100%{transform:translate(0,0);}40%{transform:translate(28px,-22px);}70%{transform:translate(-18px,28px);}}
+.scanlines{position:fixed;inset:0;z-index:1;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 2px,var(--scanline-color) 2px,var(--scanline-color) 4px);}
+
+.page{position:relative;z-index:2;}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:100;height:66px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 52px;background:var(--nav-bg);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+.nav-logo{display:flex;align-items:center;gap:14px;text-decoration:none;}
+.logo-mark{width:38px;height:38px;border:2px solid var(--gold);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;background:var(--gold-dim);overflow:hidden;position:relative;}
+.logo-mark::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--gold-glow),transparent);animation:logoS 3s ease-in-out infinite;}
+@keyframes logoS{0%,100%{opacity:.4}50%{opacity:1}}
+.logo-mark svg{width:20px;height:20px;fill:var(--gold);}
+.logo-text{font-family:var(--fd);font-size:1.1rem;font-weight:700;letter-spacing:3px;color:var(--gold);}
+.logo-sub{font-family:var(--fm);font-size:.55rem;color:var(--text2);letter-spacing:2px;display:block;}
+.nav-links{display:flex;gap:34px;}
+.nav-links a{font-family:var(--fd);font-size:.6rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;
+  color:var(--text2);transition:color .2s;text-decoration:none;position:relative;}
+.nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:1px;background:var(--gold);transition:width .25s;}
+.nav-links a:hover{color:var(--gold);}
+.nav-links a:hover::after{width:100%;}
+.nav-right{display:flex;align-items:center;gap:12px;}
+.status-pill{display:flex;align-items:center;gap:8px;font-family:var(--fm);font-size:.66rem;
+  color:var(--green);background:rgba(0,230,118,.07);border:1px solid rgba(0,230,118,.22);border-radius:20px;padding:5px 14px;}
+.status-pill.offline{color:var(--red);background:rgba(255,77,77,.07);border-color:rgba(255,77,77,.22);}
+.s-dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:blink 2s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.ctrl-btn{font-family:var(--fm);font-size:.66rem;letter-spacing:1.5px;padding:6px 16px;border-radius:20px;
+  border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;transition:all .2s;}
+.ctrl-btn:hover{border-color:var(--gold);color:var(--gold);}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:100px 40px 80px;position:relative;}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:10px;background:rgba(0,212,255,.06);
+  border:1px solid rgba(0,212,255,.22);border-radius:24px;padding:7px 22px;margin-bottom:36px;
+  font-family:var(--fm);font-size:.66rem;color:var(--cyan);letter-spacing:3px;animation:fadeUp .8s ease both;}
+.hero-eyebrow-dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);animation:blink 1.5s infinite;}
+.hero h1{font-family:var(--fd);font-size:clamp(2.6rem,6vw,7rem);font-weight:700;line-height:1.02;
+  letter-spacing:4px;text-transform:uppercase;animation:fadeUp .8s ease .1s both;}
+.hero h1 .gold{color:var(--gold);text-shadow:0 0 40px rgba(245,196,0,.3);}
+.hero h1 .dim{color:var(--text2);font-size:.30em;letter-spacing:6px;display:block;margin-top:4px;}
+.hero-line{width:1px;height:52px;background:linear-gradient(to bottom,var(--gold),transparent);margin:28px auto;animation:fadeUp .8s ease .2s both;}
+.hero-sub{max-width:520px;font-size:.98rem;font-weight:300;color:var(--text2);line-height:1.85;animation:fadeUp .8s ease .25s both;}
+.hero-chips{display:flex;gap:12px;margin-top:36px;flex-wrap:wrap;justify-content:center;animation:fadeUp .8s ease .3s both;}
+.chip{font-family:var(--fm);font-size:.63rem;letter-spacing:2px;padding:6px 16px;border-radius:20px;
+  border:1px solid var(--border);color:var(--text2);background:var(--card);}
+.chip.hi{border-color:var(--gold);color:var(--gold);background:var(--gold-dim);}
+.hero-stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:64px;
+  max-width:680px;width:100%;background:var(--border);border:1px solid var(--border);
+  border-radius:var(--r);overflow:hidden;animation:fadeUp .8s ease .38s both;}
+.hst{background:var(--card);padding:22px 16px;text-align:center;}
+.hst-n{font-family:var(--fd);font-size:1.9rem;font-weight:700;color:var(--gold);}
+.hst-l{font-family:var(--fm);font-size:.58rem;letter-spacing:2.5px;color:var(--text2);margin-top:4px;}
+.scroll-hint{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  font-family:var(--fm);font-size:.58rem;letter-spacing:2px;color:var(--text3);animation:fadeUp 1s ease .6s both;}
+.scroll-track{width:1px;height:40px;background:linear-gradient(to bottom,transparent,var(--gold));animation:sP 2s ease-in-out infinite;}
+@keyframes sP{0%,100%{opacity:.3}50%{opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+
+/* SECTIONS */
+.sec{padding:88px 52px;max-width:1280px;margin:0 auto;}
+.sec-hdr{margin-bottom:50px;}
+.sec-tag{font-family:var(--fm);font-size:.64rem;letter-spacing:3.5px;text-transform:uppercase;
+  color:var(--cyan);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.sec-tag::before{content:'';width:22px;height:1px;background:var(--cyan);}
+.sec-title{font-family:var(--fd);font-size:clamp(1.55rem,3.2vw,2.35rem);font-weight:700;
+  letter-spacing:3px;text-transform:uppercase;}
+.sec-title span{color:var(--gold);}
+.sec-rule{width:52px;height:2px;background:linear-gradient(90deg,var(--gold),var(--cyan));margin-top:14px;border-radius:1px;}
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);}
+
+/* SCROLL REVEAL */
+.reveal{opacity:0;transform:translateY(34px);transition:opacity .7s ease,transform .7s ease;}
+.reveal.vis{opacity:1;transform:none;}
+.d1{transition-delay:.05s;}.d2{transition-delay:.13s;}.d3{transition-delay:.21s;}.d4{transition-delay:.29s;}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  padding:22px;box-shadow:var(--shadow);backdrop-filter:blur(14px);
+  position:relative;overflow:hidden;transition:border-color .3s,transform .3s,box-shadow .3s;}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0;transition:opacity .3s;}
+.card:hover{border-color:rgba(245,196,0,.28);transform:translateY(-3px);box-shadow:0 22px 64px rgba(0,0,0,.5);}
+.card:hover::before{opacity:1;}
+.card-lbl{font-family:var(--fm);font-size:.6rem;letter-spacing:2.5px;text-transform:uppercase;color:var(--text2);margin-bottom:5px;}
+.card-ttl{font-family:var(--fd);font-size:.8rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;}
+
+/* ═══ DASHBOARD — 3-col symmetric ═══ */
+.dash-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;}
+
+/* Sensor cards */
+.sensor-card{display:flex;flex-direction:column;gap:10px;}
+.sensor-icon-wrap{width:50px;height:50px;border-radius:12px;background:var(--gold-dim);
+  border:1px solid rgba(245,196,0,.2);display:flex;align-items:center;justify-content:center;margin-bottom:2px;}
+.sensor-icon-wrap svg{width:24px;height:24px;}
+.sv{font-family:var(--fd);font-size:2.5rem;font-weight:700;color:var(--gold);line-height:1;}
+.sv .su{font-family:var(--fm);font-size:.75rem;color:var(--text2);margin-left:4px;}
+.sv.warn{color:var(--orange);}
+.sv.danger{color:var(--red);}
+.sn{font-family:var(--fm);font-size:.63rem;letter-spacing:2.5px;text-transform:uppercase;color:var(--text2);}
+.sbar-w{height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin-top:4px;}
+.sbar{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--gold),var(--cyan));transition:width 1.2s cubic-bezier(.4,0,.2,1);}
+.ssp{font-family:var(--fm);font-size:.62rem;color:var(--text3);margin-top:6px;}
+.live-badge{display:flex;align-items:center;gap:6px;margin-bottom:2px;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 2s ease-in-out infinite;}
+
+/* Actuators */
+.act-grid{display:flex;flex-direction:column;gap:10px;}
+.act-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;
+  border-radius:var(--r2);border:1px solid var(--border);background:rgba(255,255,255,.015);transition:all .3s;}
+.act-row.on{border-color:rgba(0,230,118,.3);background:rgba(0,230,118,.04);}
+.act-left{display:flex;align-items:center;gap:10px;}
+.act-icon-box{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;}
+.act-nm{font-family:var(--fd);font-size:.7rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;}
+.act-badge{font-family:var(--fm);font-size:.6rem;padding:3px 12px;border-radius:20px;
+  background:rgba(255,77,77,.1);color:var(--red);border:1px solid rgba(255,77,77,.22);letter-spacing:1px;transition:all .3s;cursor:pointer;}
+.act-badge.on{background:rgba(0,230,118,.1);color:var(--green);border-color:rgba(0,230,118,.25);}
+.act-badge:disabled{opacity:0.5;cursor:not-allowed;}
+.act-badge.on{background:rgba(0,230,118,.1);color:var(--green);border-color:rgba(0,230,118,.25);}
+
+/* Species */
+.spc-list{display:flex;flex-direction:column;gap:9px;}
+.spc-btn{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:var(--r2);
+  border:1px solid var(--border);background:transparent;cursor:pointer;transition:all .22s;
+  color:var(--text);font-family:var(--fb);font-size:.86rem;text-align:left;width:100%;}
+.spc-btn:hover{border-color:rgba(245,196,0,.3);background:var(--gold-dim);}
+.spc-btn.active{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);}
+.spc-img{width:44px;height:44px;border-radius:10px;object-fit:cover;border:1px solid var(--border);background:var(--navy2);flex-shrink:0;}
+.spc-nm{font-family:var(--fd);font-size:.78rem;font-weight:600;letter-spacing:1px;}
+.spc-sci{font-size:.66rem;color:var(--text2);font-style:italic;margin-top:1px;}
+.active-banner{font-family:var(--fm);font-size:.62rem;color:var(--gold);background:var(--gold-dim);
+  border:1px solid rgba(245,196,0,.2);border-radius:8px;padding:7px 12px;margin-bottom:12px;text-align:center;letter-spacing:2px;}
+
+/* Mode button */
+.mode-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.mode-buttons{display:flex;gap:10px;}
+.mode-btn{font-family:var(--fm);font-size:.62rem;letter-spacing:1.5px;padding:5px 14px;border-radius:16px;
+  border:1px solid rgba(0,230,118,.3);background:transparent;color:var(--green);cursor:pointer;transition:all .2s;}
+.mode-btn.manual{color:var(--red);border-color:rgba(255,77,77,.3);}
+.mode-btn.active{background:var(--gold-dim);border-color:var(--gold);color:var(--gold);}
+
+/* Mini health rings in status card */
+.mini-rings{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;}
+.mini-ring-wrap{text-align:center;}
+.h-ring{position:relative;display:flex;align-items:center;justify-content:center;}
+.h-ring svg{position:absolute;inset:0;transform:rotate(-90deg);}
+.h-ring circle{fill:none;stroke-width:5;}
+.h-ring .trk{stroke:rgba(255,255,255,.05);}
+.h-ring .fil{stroke:var(--gold);stroke-linecap:round;transition:stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1);}
+.h-rv{font-family:var(--fd);font-weight:700;color:var(--gold);position:relative;z-index:1;}
+.h-lbl{font-family:var(--fm);letter-spacing:2px;text-transform:uppercase;color:var(--text2);}
+
+.ts-row{font-family:var(--fm);font-size:.64rem;color:var(--text2);display:flex;align-items:center;
+  gap:8px;padding:10px 16px;border:1px solid var(--border);border-radius:var(--r2);background:var(--card);margin-top:10px;}
+.ai-log{display:flex;flex-direction:column;gap:7px;max-height:170px;overflow-y:auto;}
+.ai-log::-webkit-scrollbar{width:3px;}
+.ai-log::-webkit-scrollbar-thumb{background:var(--gold-glow);border-radius:2px;}
+.log-e{display:flex;align-items:flex-start;gap:9px;padding:8px 12px;border-radius:8px;
+  border-left:2px solid var(--gold);background:rgba(245,196,0,.03);font-size:.78rem;color:var(--text2);}
+.log-t{font-family:var(--fm);font-size:.62rem;color:var(--gold);white-space:nowrap;}
+
+/* ═══ SETPOINTS ═══ */
+.sp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+.sp-card{position:relative;}
+.sp-fish-img{width:100%;height:108px;object-fit:cover;border-radius:var(--r2);margin-bottom:14px;border:1px solid var(--border);}
+.sp-active-tag{position:absolute;top:14px;right:14px;font-family:var(--fm);font-size:.58rem;
+  padding:3px 10px;border-radius:20px;letter-spacing:1.5px;background:var(--gold-dim);
+  color:var(--gold);border:1px solid rgba(245,196,0,.3);}
+.sp-active-tag.inactive{background:transparent;color:var(--text3);border-color:var(--border);}
+.sp-params{display:flex;flex-direction:column;gap:12px;}
+.p-row{display:flex;flex-direction:column;gap:4px;}
+.p-lbl{font-family:var(--fm);font-size:.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--text2);}
+.p-val{font-family:var(--fd);font-size:1.3rem;font-weight:700;letter-spacing:1px;}
+.p-val span{font-size:.76rem;color:var(--text2);font-weight:400;}
+.p-bar{height:2px;border-radius:1px;background:rgba(255,255,255,.06);margin-top:3px;}
+.p-bar-f{height:100%;border-radius:1px;background:linear-gradient(90deg,var(--gold),var(--cyan));}
+
+/* ═══ AI CHATBOT ═══ */
+.chat-wrap{display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start;}
+.chat-box{display:flex;flex-direction:column;height:520px;border-radius:var(--r);
+  border:1px solid var(--border);background:var(--card);overflow:hidden;}
+.chat-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:rgba(0,0,0,.2);}
+.chat-ai-avatar{width:38px;height:38px;border-radius:10px;border:1.5px solid var(--gold);
+  background:var(--gold-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.chat-ai-avatar svg{width:22px;height:22px;}
+.chat-ai-name{font-family:var(--fd);font-size:.8rem;font-weight:600;letter-spacing:1.5px;color:var(--gold);}
+.chat-ai-status{font-family:var(--fm);font-size:.58rem;color:var(--green);letter-spacing:1px;margin-top:1px;}
+.chat-context-pill{margin-left:auto;font-family:var(--fm);font-size:.58rem;color:var(--cyan);
+  background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.2);border-radius:20px;padding:3px 10px;letter-spacing:1px;}
+.chat-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;}
+.chat-body::-webkit-scrollbar{width:3px;}
+.chat-body::-webkit-scrollbar-thumb{background:var(--gold-glow);border-radius:2px;}
+.msg{max-width:86%;animation:msgIn .35s ease both;}
+@keyframes msgIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.msg-ai{align-self:flex-start;}
+.msg-user{align-self:flex-end;}
+.msg-bubble{padding:11px 15px;border-radius:12px;font-size:.86rem;line-height:1.65;}
+.msg-ai .msg-bubble{background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.14);border-bottom-left-radius:4px;}
+.msg-user .msg-bubble{background:var(--gold-dim);border:1px solid rgba(245,196,0,.22);border-bottom-right-radius:4px;color:var(--gold);}
+.msg-time{font-family:var(--fm);font-size:.58rem;color:var(--text3);margin-top:4px;padding:0 4px;}
+.msg-ai .msg-time{text-align:left;}.msg-user .msg-time{text-align:right;}
+.typing{display:flex;gap:5px;align-items:center;padding:12px 15px;}
+.typing span{width:7px;height:7px;border-radius:50%;background:var(--cyan);animation:tD 1.2s ease-in-out infinite;}
+.typing span:nth-child(2){animation-delay:.2s;}.typing span:nth-child(3){animation-delay:.4s;}
+@keyframes tD{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+.chat-footer{padding:12px 14px;border-top:1px solid var(--border);display:flex;gap:10px;background:rgba(0,0,0,.15);}
+.chat-input{flex:1;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:24px;
+  padding:10px 18px;color:var(--text);font-family:var(--fb);font-size:.86rem;outline:none;transition:border-color .2s;}
+.chat-input:focus{border-color:rgba(245,196,0,.4);}
+.chat-input::placeholder{color:var(--text3);}
+.chat-send{width:42px;height:42px;border-radius:50%;border:1px solid rgba(245,196,0,.3);
+  background:var(--gold-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:var(--gold);transition:all .2s;flex-shrink:0;}
+.chat-send:hover{background:var(--gold-glow);border-color:var(--gold);}
+.chat-send svg{width:17px;height:17px;}
+
+/* Questions panel */
+.q-panel-title{font-family:var(--fm);font-size:.64rem;letter-spacing:2.5px;text-transform:uppercase;
+  color:var(--cyan);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.q-panel-title::before{content:'';width:14px;height:1px;background:var(--cyan);}
+.questions-panel{display:flex;flex-direction:column;gap:9px;}
+.q-btn{padding:12px 14px;border-radius:var(--r2);border:1px solid var(--border);background:var(--card);
+  cursor:pointer;text-align:left;color:var(--text);font-family:var(--fb);font-size:.8rem;line-height:1.5;
+  transition:all .22s;position:relative;overflow:hidden;}
+.q-btn::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;
+  background:var(--gold);transform:scaleY(0);transition:transform .2s;}
+.q-btn:hover{border-color:rgba(245,196,0,.28);background:var(--gold-dim);padding-left:20px;}
+.q-btn:hover::before{transform:scaleY(1);}
+.q-cat{display:block;font-family:var(--fm);font-size:.56rem;letter-spacing:1.5px;color:var(--cyan);text-transform:uppercase;margin-bottom:3px;}
+
+/* AI Insights */
+.insight-pair{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px;}
+.insight-card{padding:20px;border-left:2px solid var(--gold);}
+.insight-title{font-family:var(--fd);font-size:.76rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);margin-bottom:10px;}
+.insight-text{font-size:.82rem;color:var(--text2);line-height:1.7;}
+.ai-vision-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.av-mini{text-align:center;padding:14px 10px;}
+.av-lbl{font-family:var(--fm);font-size:.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin-bottom:5px;}
+.av-val{font-family:var(--fd);font-size:1.4rem;font-weight:700;color:var(--cyan);}
+.insight-tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
+.itag{font-family:var(--fm);font-size:.58rem;padding:3px 10px;border-radius:20px;letter-spacing:1.5px;text-transform:uppercase;}
+
+/* DATABASE */
+.db-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;}
+.db-stat-n{font-family:var(--fd);font-size:1.9rem;font-weight:700;color:var(--cyan);}
+.db-stat-l{font-family:var(--fm);font-size:.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin-top:4px;}
+.db-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px;}
+.range-btn{font-family:var(--fm);font-size:.64rem;letter-spacing:1.5px;text-transform:uppercase;
+  padding:6px 16px;border-radius:20px;border:1px solid var(--border);background:transparent;
+  cursor:pointer;color:var(--text2);transition:all .22s;}
+.range-btn:hover{border-color:var(--gold);color:var(--gold);}
+.range-btn.active{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);}
+.export-btn{margin-left:auto;font-family:var(--fd);font-weight:600;font-size:.7rem;letter-spacing:1.5px;
+  text-transform:uppercase;padding:7px 20px;border-radius:20px;border:1px solid rgba(0,212,255,.3);
+  background:rgba(0,212,255,.06);color:var(--cyan);cursor:pointer;transition:all .22s;}
+.export-btn:hover{background:rgba(0,212,255,.13);border-color:var(--cyan);}
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;}
+.chart-wrap{position:relative;height:205px;}
+.alert-list{display:flex;flex-direction:column;gap:8px;max-height:290px;overflow-y:auto;}
+.alert-list::-webkit-scrollbar{width:3px;}
+.alert-list::-webkit-scrollbar-thumb{background:var(--gold-glow);border-radius:2px;}
+.alert-item{display:flex;align-items:flex-start;gap:12px;padding:10px 14px;border-radius:var(--r2);}
+.alert-item.WARNING{border-left:2px solid var(--orange);background:rgba(255,152,0,.05);}
+.alert-item.CRITICAL{border-left:2px solid var(--red);background:rgba(255,77,77,.05);}
+.alert-level{font-family:var(--fm);font-size:.58rem;padding:3px 9px;border-radius:20px;white-space:nowrap;}
+.alert-item.WARNING .alert-level{background:rgba(255,152,0,.12);color:var(--orange);border:1px solid rgba(255,152,0,.25);}
+.alert-item.CRITICAL .alert-level{background:rgba(255,77,77,.12);color:var(--red);border:1px solid rgba(255,77,77,.25);}
+.alert-msg{font-size:.8rem;color:var(--text2);flex:1;line-height:1.5;}
+.alert-ts{font-family:var(--fm);font-size:.6rem;color:var(--text3);white-space:nowrap;}
+.no-alerts{text-align:center;padding:26px;font-family:var(--fm);font-size:.7rem;color:var(--green);letter-spacing:2px;}
+
+/* HEALTH */
+.h-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.h-card{text-align:center;padding:24px 14px;}
+
+/* TEAM */
+.team-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;}
+.team-card{text-align:center;padding:28px 16px;}
+.t-av{width:80px;height:80px;border-radius:50%;overflow:hidden;border:2px solid var(--gold);
+  margin:0 auto 13px;box-shadow:0 0 22px var(--gold-glow);}
+.t-av img{width:100%;height:100%;object-fit:cover;}
+.t-nm{font-family:var(--fd);font-size:.82rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;}
+.t-role{font-size:.66rem;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;font-family:var(--fm);margin-bottom:8px;}
+.t-desc{font-size:.79rem;color:var(--text2);line-height:1.65;}
+
+footer{border-top:1px solid var(--border);padding:30px;text-align:center;
+  color:var(--text2);font-family:var(--fm);font-size:.66rem;letter-spacing:1px;}
+footer span{color:var(--gold);}
+
+@media(max-width:1050px){
+  .dash-grid{grid-template-columns:1fr 1fr;}
+  .sp-grid,.team-grid{grid-template-columns:1fr 1fr;}
+  .chat-wrap{grid-template-columns:1fr;}
+  .h-grid{grid-template-columns:repeat(2,1fr);}
+  .hero-stats-grid{grid-template-columns:repeat(2,1fr);}
+  .insight-pair{grid-template-columns:1fr;}
+  .ai-vision-row{grid-template-columns:repeat(2,1fr);}
+  nav{padding:0 20px;}
+  .sec{padding:64px 24px;}
+}
+@media(max-width:640px){
+  .dash-grid,.sp-grid,.team-grid,.chart-grid{grid-template-columns:1fr;}
+  .nav-links{display:none;}
+  .h-grid{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+
+<div class="cursor-dot" id="cDot"></div>
+<div class="cursor-ring" id="cRing"></div>
+
+<div class="bg-layer">
+  <div class="bg-grid"></div>
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+<div class="scanlines"></div>
+
+<div class="page">
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24"><path d="M2 12C2 12 5 6 12 6C19 6 22 12 22 12C22 12 19 18 12 18C5 18 2 12 2 12Z" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M18 8L21 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </div>
+    <div><div class="logo-text">AI-Integrated Fish Tank</div><span class="logo-sub">Group 19218</span></div>
+  </a>
+  <div class="nav-links">
+    <a href="#dashboard">Dashboard</a>
+    <a href="#setpoints">Setpoints</a>
+    <a href="#ai-chat">AI Chat</a>
+    <a href="#database">Database</a>
+    <a href="#team">Team</a>
+  </div>
+  <div class="nav-right">
+    <div class="status-pill" id="status-pill"><div class="s-dot"></div><span id="conn-status">CONNECTING</span></div>
+    <button class="ctrl-btn" onclick="toggleTheme()" id="theme-btn">☀ Light</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow"><div class="hero-eyebrow-dot"></div>STEM GHARBIYA · CLASS 2027 · Group 19218</div>
+  <h1>AI-Integrated<br><span class="gold">Fish Tank</span><span class="dim">Closed-loop Feedback System</span></h1>
+  <div class="hero-line"></div>
+  <p class="hero-sub">Real-time sensor monitoring, AI-driven feedback loops, and autonomous actuator control for precision aquaculture intelligence.</p>
+  <div class="hero-chips">
+    <div class="chip hi">ESP32 Firmware</div>
+    <div class="chip">YOLOv8 Vision</div>
+    <div class="chip">Node-RED IoT</div>
+    <div class="chip hi">Gemini AI</div>
+    <div class="chip">SQLite DB</div>
+  </div>
+  <div class="hero-stats-grid">
+    <div class="hst"><div class="hst-n">3</div><div class="hst-l">Species</div></div>
+    <div class="hst"><div class="hst-n">3</div><div class="hst-l">Sensors</div></div>
+    <div class="hst"><div class="hst-n">3</div><div class="hst-l">Actuators</div></div>
+    <div class="hst"><div class="hst-n">2s</div><div class="hst-l">Update Cycle</div></div>
+  </div>
+  <div class="scroll-hint"><div class="scroll-track"></div>SCROLL TO EXPLORE</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- DASHBOARD -->
+<section class="sec" id="dashboard">
+  <div class="sec-hdr reveal">
+    <div class="sec-tag">01 — Live Monitor</div>
+    <h2 class="sec-title">SYSTEM <span>DASHBOARD</span></h2>
+    <div class="sec-rule"></div>
+  </div>
+
+  <!-- Row 1: 3 sensors — perfectly symmetric -->
+  <div class="dash-grid" style="margin-bottom:18px;">
+    <div class="card sensor-card reveal d1">
+      <div class="live-badge"><div class="live-dot"></div><span class="card-lbl">Live Reading</span></div>
+      <div class="sensor-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+      </div>
+      <div class="sv" id="val-temp">--<span class="su">°C</span></div>
+      <div class="sn">Water Temperature</div>
+      <div class="sbar-w"><div class="sbar" id="bar-temp" style="width:0"></div></div>
+      <div class="ssp" id="sp-temp">Target: -- °C</div>
+    </div>
+    <div class="card sensor-card reveal d2">
+      <div class="live-badge"><div class="live-dot"></div><span class="card-lbl">Live Reading</span></div>
+      <div class="sensor-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      </div>
+      <div class="sv" id="val-tds">--<span class="su">ppm</span></div>
+      <div class="sn">TDS — Nutrients</div>
+      <div class="sbar-w"><div class="sbar" id="bar-tds" style="width:0"></div></div>
+      <div class="ssp" id="sp-tds">Range: -- – -- ppm</div>
+    </div>
+    <div class="card sensor-card reveal d3">
+      <div class="live-badge"><div class="live-dot"></div><span class="card-lbl">Live Reading</span></div>
+      <div class="sensor-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5"><path d="M12 2C8 2 4 6 4 10c0 4 2 6 4 8l4 4 4-4c2-2 4-4 4-8 0-4-4-8-8-8z"/></svg>
+      </div>
+      <div class="sv" id="val-turb">--<span class="su">NTU</span></div>
+      <div class="sn">Turbidity / Clarity</div>
+      <div class="sbar-w"><div class="sbar" id="bar-turb" style="width:0"></div></div>
+      <div class="ssp" id="sp-turb">Max: -- NTU</div>
+    </div>
+  </div>
+
+  <!-- Row 2: Species | Actuators | Status — symmetric -->
+  <div class="dash-grid">
+    <div class="card reveal d1">
+      <div class="card-lbl">Active Profile</div>
+      <div class="card-ttl">Species Selection</div>
+      <div class="active-banner" id="active-profile-banner">TILAPIA PROFILE ACTIVE</div>
+      <div class="spc-list">
+        <button class="spc-btn active" onclick="selectSpecies('tilapia',this)">
+          <img class="spc-img" src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Mozambique_tilapia_%28Oreochromis_mossambicus%29.jpg/320px-Mozambique_tilapia_%28Oreochromis_mossambicus%29.jpg" alt="Tilapia" onerror="this.src='https://placehold.co/44x44/0a1e35/f5c400?text=T'">
+          <div><div class="spc-nm">Tilapia</div><div class="spc-sci">Oreochromis niloticus</div></div>
+        </button>
+        <button class="spc-btn" onclick="selectSpecies('pangasius',this)">
+          <img class="spc-img" src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Pangasius_hypophthalmus.jpg/320px-Pangasius_hypophthalmus.jpg" alt="Pangasius" onerror="this.src='https://placehold.co/44x44/0a1e35/00d4ff?text=P'">
+          <div><div class="spc-nm">Pangasius</div><div class="spc-sci">Pangasianodon hypophthalmus</div></div>
+        </button>
+        <button class="spc-btn" onclick="selectSpecies('zebra_fish',this)">
+          <img class="spc-img" src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/Danio_rerio_port.jpg/320px-Danio_rerio_port.jpg" alt="Zebra Fish" onerror="this.src='https://placehold.co/44x44/0a1e35/00e676?text=Z'">
+          <div><div class="spc-nm">Zebra Fish</div><div class="spc-sci">Danio rerio</div></div>
+        </button>
+      </div>
+    </div>
+
+    <div class="card reveal d2">
+      <div class="mode-hdr">
+        <div><div class="card-lbl">Relay Control</div><div class="card-ttl" style="margin-bottom:0">Actuator States</div></div>
+        <div class="mode-buttons">
+          <button class="mode-btn manual" onclick="setMode('manual')">MANUAL</button>
+          <button class="mode-btn active" onclick="setMode('auto')">AUTO</button>
+        </div>
+      </div>
+      <div class="act-grid">
+        <div class="act-row" id="act-heat">
+          <div class="act-left">
+            <div class="act-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="1.8"><path d="M12 2a7 7 0 0 0-7 7c0 3.87 3.13 7 7 7s7-3.13 7-7a7 7 0 0 0-7-7z"/><path d="M12 16v6M8 22h8"/></svg></div>
+            <span class="act-nm">Heater</span>
+          </div>
+          <button class="act-badge" id="badge-heat" onclick="toggleActuator('heat')" disabled>OFF</button>
+        </div>
+        <div class="act-row" id="act-filter">
+          <div class="act-left">
+            <div class="act-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="1.8"><path d="M4 4h16l-6 8v6l-4-2V12L4 4z"/></svg></div>
+            <span class="act-nm">Filter</span>
+          </div>
+          <button class="act-badge" id="badge-filter" onclick="toggleActuator('filter')" disabled>OFF</button>
+        </div>
+        <div class="act-row" id="act-air">
+          <div class="act-left">
+            <div class="act-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg></div>
+            <span class="act-nm">Aerator</span>
+          </div>
+          <button class="act-badge" id="badge-air" onclick="toggleActuator('air')" disabled>OFF</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card reveal d3" style="display:flex;flex-direction:column;">
+      <div class="card-lbl">System Events</div>
+      <div class="card-ttl">Activity Log</div>
+      <div class="ai-log" id="ai-log">
+        <div class="log-e"><span class="log-t">--:--:--</span><span>Initializing AquaCore...</span></div>
+      </div>
+      <div class="mini-rings" style="margin-top:auto;padding-top:12px;">
+        <div class="mini-ring-wrap">
+          <div class="h-ring" style="width:52px;height:52px;margin:0 auto 5px;">
+            <svg viewBox="0 0 90 90"><circle class="trk" cx="45" cy="45" r="38"/><circle class="fil" id="ring-wifi" cx="45" cy="45" r="38" stroke-dasharray="238.76" stroke-dashoffset="238.76"/></svg>
+            <span class="h-rv" id="pct-wifi" style="font-size:.78rem;">0%</span>
+          </div>
+          <div class="h-lbl" style="font-size:.5rem;">WiFi</div>
+        </div>
+        <div class="mini-ring-wrap">
+          <div class="h-ring" style="width:52px;height:52px;margin:0 auto 5px;">
+            <svg viewBox="0 0 90 90"><circle class="trk" cx="45" cy="45" r="38"/><circle class="fil" id="ring-temp" cx="45" cy="45" r="38" stroke-dasharray="238.76" stroke-dashoffset="238.76"/></svg>
+            <span class="h-rv" id="pct-temp" style="font-size:.78rem;">0%</span>
+          </div>
+          <div class="h-lbl" style="font-size:.5rem;">Temp</div>
+        </div>
+        <div class="mini-ring-wrap">
+          <div class="h-ring" style="width:52px;height:52px;margin:0 auto 5px;">
+            <svg viewBox="0 0 90 90"><circle class="trk" cx="45" cy="45" r="38"/><circle class="fil" id="ring-tds" cx="45" cy="45" r="38" stroke-dasharray="238.76" stroke-dashoffset="238.76"/></svg>
+            <span class="h-rv" id="pct-tds" style="font-size:.78rem;">0%</span>
+          </div>
+          <div class="h-lbl" style="font-size:.5rem;">TDS</div>
+        </div>
+        <div class="mini-ring-wrap">
+          <div class="h-ring" style="width:52px;height:52px;margin:0 auto 5px;">
+            <svg viewBox="0 0 90 90"><circle class="trk" cx="45" cy="45" r="38"/><circle class="fil" id="ring-turb" cx="45" cy="45" r="38" stroke-dasharray="238.76" stroke-dashoffset="238.76"/></svg>
+            <span class="h-rv" id="pct-turb" style="font-size:.78rem;">0%</span>
+          </div>
+          <div class="h-lbl" style="font-size:.5rem;">Turb</div>
+        </div>
+      </div>
+      <div class="ts-row">🕐 Last update: <span id="ts">--:--:--</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- SETPOINTS -->
+<section class="sec" id="setpoints">
+  <div class="sec-hdr reveal">
+    <div class="sec-tag">02 — Configuration</div>
+    <h2 class="sec-title">SPECIES <span>SETPOINTS</span></h2>
+    <div class="sec-rule"></div>
+  </div>
+  <div class="sp-grid">
+    <div class="card sp-card reveal d1" id="card-tilapia">
+      <span class="sp-active-tag" id="tag-tilapia">ACTIVE</span>
+      <img class="sp-fish-img" src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Mozambique_tilapia_%28Oreochromis_mossambicus%29.jpg/400px-Mozambique_tilapia_%28Oreochromis_mossambicus%29.jpg" alt="Tilapia" onerror="this.src='https://placehold.co/400x108/071828/f5c400?text=Tilapia'">
+      <div class="card-lbl">Profile 2</div><div class="card-ttl">Tilapia — Oreochromis niloticus</div>
+      <div class="sp-params">
+        <div class="p-row"><span class="p-lbl">Target Temperature</span><div class="p-val">30.0 <span>°C</span></div><div class="p-bar"><div class="p-bar-f" style="width:56%"></div></div></div>
+        <div class="p-row"><span class="p-lbl">TDS Range</span><div class="p-val">200 – 500 <span>ppm</span></div><div class="p-bar"><div class="p-bar-f" style="width:60%"></div></div></div>
+        <div class="p-row"><span class="p-lbl">Max Turbidity</span><div class="p-val">100 <span>NTU</span></div><div class="p-bar"><div class="p-bar-f" style="width:50%"></div></div></div>
+        <div class="p-row"><span class="p-lbl">Hysteresis</span><div class="p-val">2.0 <span>°C</span></div><div class="p-bar"><div class="p-bar-f" style="width:20%"></div></div></div>
+      </div>
+    </div>
+    <div class="card sp-card reveal d2" id="card-pangasius">
+      <span class="sp-active-tag inactive" id="tag-pangasius">Profile 1</span>
+      <img class="sp-fish-img" src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Pangasius_hypophthalmus.jpg/400px-Pangasius_hypophthalmus.jpg" alt="Pangasius" onerror="this.src='https://placehold.co/400x108/071828/00d4ff?text=Pangasius'">
+      <div class="card-lbl">Profile 1</div><div class="card-ttl">Pangasius — Pangasianodon hypophthalmus</div>
+      <div class="sp-params">
+        <div class="p-row"><span class="p-lbl">Target Temperature</span><div class="p-val">28.0 <span>°C</span></div><div class="p-bar"><div class="p-bar-f" style="width:52%"></div></div></div>
+        <div class="p-row"><span class="p-lbl">TDS Range</span><div class="p-val">100 – 400 <span>ppm</span></div><div class="p-bar"><div class="p-bar-f" style="width:50%"></div></div></div>
+        <div class="p-row"><span class="p-lbl">Max Turbidity</span><div class="p-val">80 <span>NTU</span></div><div class="p-bar"><div class="p-bar-f" style="width:40%"></div></div></div>
+        <div class="p-row"><span class="p-lbl">Hysteresis</span><div class="p-val">1.0 <span>°C</span></div><div class="p-bar"><div class="p-bar-f" style="width:10%"></div></div></div>
+      </div>
+    </div>
+    <div class="card sp-card reveal d3" id="card-zebra_fish">
+      <span class="sp-active-tag inactive" id="tag-zebra_fish">Profile 3</span>
+      <img class="sp-fish-img" src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/Danio_rerio_port.jpg/400px-Danio_rerio_port.jpg" alt="Zebra Fish" onerror="this.src='https://placehold.co/400x108/071828/00e676?text=Zebrafish'">
+      <div class="card-lbl">Profile 3</div><div class="card-ttl">Zebra Fish — Danio rerio</div>
+      <div class="sp-params">
+        <div class="p-row"><span class="p-lbl">Target Temperature</span><div class="p-val">26.0 <span>°C</span></div><div class="p-bar"><div class="p-bar-f" style="width:48%"></div></div></div>
+        <div class="p-row"><span class="p-lbl">TDS Range</span><div class="p-val">50 – 150 <span>ppm</span></div><div class="p-bar"><div class="p-bar-f" style="width:38%"></div></div></div>
+        <div class="p-row"><span class="p-lbl">Max Turbidity</span><div class="p-val">30 <span>NTU</span></div><div class="p-bar"><div class="p-bar-f" style="width:24%"></div></div></div>
+        <div class="p-row"><span class="p-lbl">Hysteresis</span><div class="p-val">0.5 <span>°C</span></div><div class="p-bar"><div class="p-bar-f" style="width:5%"></div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- AI CHATBOT -->
+<section class="sec" id="ai-chat">
+  <div class="sec-hdr reveal">
+    <div class="sec-tag">03 — Intelligence Layer</div>
+    <h2 class="sec-title">AI <span>ASSISTANT</span></h2>
+    <div class="sec-rule"></div>
+  </div>
+
+  <!-- AI Vision + Insights -->
+  <div class="insight-pair reveal" style="margin-bottom:22px;">
+    <div class="card insight-card">
+      <div class="insight-title">Vision Detection</div>
+      <div class="ai-vision-row" style="margin-top:10px;">
+        <div class="av-mini card" style="padding:12px;"><div class="av-lbl">Species</div><div class="av-val" id="ai-species" style="font-size:.95rem;margin-top:4px;">--</div></div>
+        <div class="av-mini card" style="padding:12px;"><div class="av-lbl">Count</div><div class="av-val" id="ai-count">0</div></div>
+        <div class="av-mini card" style="padding:12px;"><div class="av-lbl">Avg Size</div><div class="av-val" id="ai-size" style="font-size:.95rem;margin-top:4px;">0 cm</div></div>
+        <div class="av-mini card" style="padding:12px;"><div class="av-lbl">Confidence</div><div class="av-val" id="ai-conf">--%</div></div>
+      </div>
+    </div>
+    <div class="card insight-card">
+      <div class="insight-title">AI Insight</div>
+      <div id="ai-insight-text" class="insight-text" style="min-height:60px;">Waiting for sensor data to generate insight...</div>
+      <div class="insight-tags" id="ai-insight-tags"></div>
+    </div>
+  </div>
+
+  <!-- Chat + Questions -->
+  <div class="chat-wrap reveal">
+    <div class="chat-box">
+      <div class="chat-header">
+        <div class="chat-ai-avatar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="9" cy="10" r="1.5" fill="var(--gold)"/><circle cx="15" cy="10" r="1.5" fill="var(--gold)"/><path d="M8 15s1.5 2 4 2 4-2 4-2"/></svg>
+        </div>
+        <div>
+          <div class="chat-ai-name">AquaAI</div>
+          <div class="chat-ai-status">● Online — Gemini-powered</div>
+        </div>
+        <div class="chat-context-pill">Sensor context: live</div>
+      </div>
+      <div class="chat-body" id="chat-body">
+        <div class="msg msg-ai">
+          <div class="msg-bubble">Hello! I'm AquaAI — your intelligent aquaculture assistant powered by Gemini Flash. I have real-time access to your tank's sensors and can help with fish health, water chemistry, species care, and system diagnostics. What would you like to know?</div>
+          <div class="msg-time" id="chat-init-time">--:--:--</div>
+        </div>
+      </div>
+      <div class="chat-footer">
+        <input class="chat-input" id="chat-input" type="text" placeholder="Ask about your fish or water conditions..." onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="chat-send" onclick="sendChat()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div>
+      <div class="q-panel-title">Example Questions</div>
+      <div class="questions-panel">
+        <button class="q-btn" onclick="askQ(this.dataset.q)" data-q="What is the current water temperature and is it safe for the active fish species?">
+          <span class="q-cat">Water Quality</span>Is the current temperature safe for my fish?
+        </button>
+        <button class="q-btn" onclick="askQ(this.dataset.q)" data-q="Are the TDS levels optimal? What could cause them to go out of range?">
+          <span class="q-cat">Nutrients</span>Are TDS levels optimal, and what causes drift?
+        </button>
+        <button class="q-btn" onclick="askQ(this.dataset.q)" data-q="Turbidity is rising — should I activate the filter? What are the risks?">
+          <span class="q-cat">Clarity</span>High turbidity — should I run the filter?
+        </button>
+        <button class="q-btn" onclick="askQ(this.dataset.q)" data-q="Compare Tilapia, Pangasius, and Zebra Fish: which is hardiest and easiest to maintain?">
+          <span class="q-cat">Species</span>Which of the 3 species is easiest to maintain?
+        </button>
+        <button class="q-btn" onclick="askQ(this.dataset.q)" data-q="What are signs of stress in fish and how does water quality affect their behavior?">
+          <span class="q-cat">Fish Health</span>What are stress signs in fish?
+        </button>
+        <button class="q-btn" onclick="askQ(this.dataset.q)" data-q="The heater just turned on. Is the current heating cycle normal or should I be concerned?">
+          <span class="q-cat">Actuators</span>The heater activated — is this normal?
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- DATABASE -->
+<section class="sec" id="database">
+  <div class="sec-hdr reveal">
+    <div class="sec-tag">04 — Persistent Storage</div>
+    <h2 class="sec-title">DATABASE <span>& HISTORY</span></h2>
+    <div class="sec-rule"></div>
+  </div>
+  <div class="db-stats-row reveal">
+    <div class="card" style="text-align:center;padding:20px;"><div class="db-stat-n" id="stat-readings">--</div><div class="db-stat-l">Readings Stored</div></div>
+    <div class="card" style="text-align:center;padding:20px;"><div class="db-stat-n" id="stat-alerts">--</div><div class="db-stat-l">Alerts Logged</div></div>
+    <div class="card" style="text-align:center;padding:20px;"><div class="db-stat-n" id="stat-actuator">0</div><div class="db-stat-l">Actuator Events</div></div>
+  </div>
+  <div class="db-toolbar reveal">
+    <span style="font-family:var(--fm);font-size:.64rem;color:var(--text2);letter-spacing:2px;">RANGE:</span>
+    <button class="range-btn active" onclick="setRange('1h',this)">1H</button>
+    <button class="range-btn" onclick="setRange('6h',this)">6H</button>
+    <button class="range-btn" onclick="setRange('24h',this)">24H</button>
+    <button class="range-btn" onclick="setRange('7d',this)">7D</button>
+    <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
+  </div>
+  <div class="chart-grid reveal">
+    <div class="card"><div class="card-lbl">Historical</div><div class="card-ttl">Temperature (°C)</div><div class="chart-wrap"><canvas id="chart-temp"></canvas></div></div>
+    <div class="card"><div class="card-lbl">Historical</div><div class="card-ttl">TDS (ppm)</div><div class="chart-wrap"><canvas id="chart-tds"></canvas></div></div>
+  </div>
+  <div class="reveal" style="margin-bottom:18px;">
+    <div class="card"><div class="card-lbl">Historical</div><div class="card-ttl">Turbidity (NTU)</div><div class="chart-wrap" style="height:175px;"><canvas id="chart-turb"></canvas></div></div>
+  </div>
+  <div class="card reveal">
+    <div class="card-lbl">Auto-Generated</div>
+    <div class="card-ttl" style="display:flex;align-items:center;justify-content:space-between;">
+      System Alerts
+      <span id="alert-count-badge" style="font-family:var(--fm);font-size:.64rem;padding:3px 12px;border-radius:20px;background:rgba(255,77,77,.1);color:var(--red);border:1px solid rgba(255,77,77,.22);">0 ALERTS</span>
+    </div>
+    <div class="alert-list" id="alert-list"><div class="no-alerts">✓ No alerts — system nominal</div></div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- HEALTH -->
+<section class="sec" id="health">
+  <div class="sec-hdr reveal">
+    <div class="sec-tag">05 — Diagnostics</div>
+    <h2 class="sec-title">SYSTEM <span>HEALTH</span></h2>
+    <div class="sec-rule"></div>
+  </div>
+  <div class="h-grid">
+    <div class="card h-card reveal d1">
+      <div class="h-ring" style="width:86px;height:86px;margin:0 auto 14px;"><svg viewBox="0 0 90 90"><circle class="trk" cx="45" cy="45" r="38"/><circle class="fil" id="ring-wifi2" cx="45" cy="45" r="38" stroke-dasharray="238.76" stroke-dashoffset="238.76"/></svg><span class="h-rv" id="pct-wifi2" style="font-size:1.15rem;">0%</span></div>
+      <div class="h-lbl" style="font-size:.6rem;">WiFi Signal</div>
+    </div>
+    <div class="card h-card reveal d2">
+      <div class="h-ring" style="width:86px;height:86px;margin:0 auto 14px;"><svg viewBox="0 0 90 90"><circle class="trk" cx="45" cy="45" r="38"/><circle class="fil" id="ring-temp2" cx="45" cy="45" r="38" stroke-dasharray="238.76" stroke-dashoffset="238.76"/></svg><span class="h-rv" id="pct-temp2" style="font-size:1.15rem;">0%</span></div>
+      <div class="h-lbl" style="font-size:.6rem;">Temp Sensor</div>
+    </div>
+    <div class="card h-card reveal d3">
+      <div class="h-ring" style="width:86px;height:86px;margin:0 auto 14px;"><svg viewBox="0 0 90 90"><circle class="trk" cx="45" cy="45" r="38"/><circle class="fil" id="ring-tds2" cx="45" cy="45" r="38" stroke-dasharray="238.76" stroke-dashoffset="238.76"/></svg><span class="h-rv" id="pct-tds2" style="font-size:1.15rem;">0%</span></div>
+      <div class="h-lbl" style="font-size:.6rem;">TDS Sensor</div>
+    </div>
+    <div class="card h-card reveal d4">
+      <div class="h-ring" style="width:86px;height:86px;margin:0 auto 14px;"><svg viewBox="0 0 90 90"><circle class="trk" cx="45" cy="45" r="38"/><circle class="fil" id="ring-turb2" cx="45" cy="45" r="38" stroke-dasharray="238.76" stroke-dashoffset="238.76"/></svg><span class="h-rv" id="pct-turb2" style="font-size:1.15rem;">0%</span></div>
+      <div class="h-lbl" style="font-size:.6rem;">Turbidity Sensor</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- TEAM -->
+<section class="sec" id="team">
+  <div class="sec-hdr reveal">
+    <div class="sec-tag">06 — The People</div>
+    <h2 class="sec-title">MEET THE <span>TEAM</span></h2>
+    <div class="sec-rule"></div>
+  </div>
+  <div class="team-grid">
+    <div class="card team-card reveal d1">
+      <div class="t-av"><img src="https://placehold.co/80x80/0f2848/f5c400?text=LE" alt="Linah"></div>
+      <div class="t-nm">Linah Elshorbagy</div><div class="t-role">Embedded & AI Dev</div>
+      <p class="t-desc">ESP32 firmware, sensor integration, and real-time closed-loop control logic.</p>
+    </div>
+    <div class="card team-card reveal d2">
+      <div class="t-av"><img src="https://placehold.co/80x80/0f2848/00d4ff?text=MT" alt="Mayar"></div>
+      <div class="t-nm">Mayar Tarek</div><div class="t-role">Data & Coordinator</div>
+      <p class="t-desc">Species profiles, water quality parameters, and biological thresholds.</p>
+    </div>
+    <div class="card team-card reveal d3">
+      <div class="t-av"><img src="https://placehold.co/80x80/0f2848/00e676?text=MG" alt="Mervat"></div>
+      <div class="t-nm">Mervat Gharieb</div><div class="t-role">UI & Visual Design</div>
+      <p class="t-desc">Dashboard UI, visual identity, and user experience of the project.</p>
+    </div>
+    <div class="card team-card reveal d4">
+      <div class="t-av"><img src="https://placehold.co/80x80/0f2848/ff9800?text=RE" alt="Ragad"></div>
+      <div class="t-nm">Ragad El-Halmoshy</div><div class="t-role">Team Researcher</div>
+      <p class="t-desc">Accurate biological data and aquaculture research to support the system.</p>
+    </div>
+  </div>
+</section>
+
+<footer><p>© 2026 <span>STEM Gharbiya | 19218</span> — AI-IntegratedFish Tank &nbsp;|&nbsp; ESP32 · Node-RED · Gemini Flash · YOLOv8</p></footer>
+</div>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script>
+/* ═══════════ CONFIG ═══════════ */
+const NODE_RED = 'http://192.168.8.72:1880';
+const SPECIES = {
+  pangasius:  { label:'Pangasius',  targetTemp:28.0, tdsMin:100, tdsMax:400, maxTurbidity:80,  hysteresis:1.0 },
+  tilapia:    { label:'Tilapia',    targetTemp:30.0, tdsMin:200, tdsMax:500, maxTurbidity:100, hysteresis:2.0 },
+  zebra_fish: { label:'Zebra Fish', targetTemp:26.0, tdsMin:50,  tdsMax:150, maxTurbidity:30,  hysteresis:0.5 }
+};
+let currentSpecies='tilapia', lastActuators={heat:false,filter:false,air:false}, manualMode=false;
+let actuatorEvents=0, currentRange='1h', lastSensorData=null;
+let lastInsightTime=0, chatHistory=[], isTyping=false;
+let fakeInterval=null, espConnected=false;
+// throttle: only write to history every 30s max
+let lastHistoryWrite=0;
+const logs=[];
+
+const firebaseConfig = {
+    apiKey: "AIzaSyBmAcqgjX-X7gaQR67_g-SrIu3iQIH8Vbo",
+    authDomain: "pangasius-fish-tank.firebaseapp.com",
+    projectId: "pangasius-fish-tank",
+    storageBucket: "pangasius-fish-tank.firebasestorage.app",
+    messagingSenderId: "91041472291",
+    appId: "1:91041472291:web:41f1e81e8190c62361f696",
+    databaseURL: "https://fish-tankk-default-rtdb.europe-west1.firebasedatabase.app"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+/* ═══════════ CURSOR ═══════════ */
+const cDot=document.getElementById('cDot'), cRing=document.getElementById('cRing');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cDot.style.cssText=`left:${mx}px;top:${my}px;`;});
+(function animR(){rx+=(mx-rx)*.13;ry+=(my-ry)*.13;cRing.style.cssText=`left:${rx}px;top:${ry}px;`;requestAnimationFrame(animR);})();
+document.querySelectorAll('a,button,.card').forEach(el=>{
+  el.addEventListener('mouseenter',()=>document.body.classList.add('hov'));
+  el.addEventListener('mouseleave',()=>document.body.classList.remove('hov'));
+});
+
+/* ═══════════ SCROLL REVEAL ═══════════ */
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('vis');});
+},{threshold:.1});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+
+/* ═══════════ THEME ═══════════ */
+function toggleTheme(){
+  const h=document.documentElement,dark=h.getAttribute('data-theme')==='dark';
+  h.setAttribute('data-theme',dark?'light':'dark');
+  document.getElementById('theme-btn').textContent=dark?'🌙 Dark':'☀ Light';
+}
+
+/* ═══════════ MODE ═══════════ */
+function setMode(mode){
+  manualMode = mode === 'manual';
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent.toUpperCase() === mode.toUpperCase());
+  });
+  document.querySelectorAll('.act-badge').forEach(b => b.disabled = !manualMode);
+  db.ref('aquarium/controls').update({ override: manualMode });
+  addLog(`Mode → ${manualMode?'MANUAL (dashboard override)':'AUTO (ESP32 closed-loop)'}`);
+}
+
+/* ═══════════ SPECIES ═══════════ */
+function selectSpecies(sp,btn){
+  if(sp===currentSpecies)return;
+  currentSpecies=sp;
+  document.querySelectorAll('.spc-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('active-profile-banner').textContent=SPECIES[sp].label.toUpperCase()+' PROFILE ACTIVE';
+  Object.keys(SPECIES).forEach(key=>{
+    const tag=document.getElementById('tag-'+key);if(!tag)return;
+    if(key===sp){tag.textContent='ACTIVE';tag.classList.remove('inactive');}
+    else{tag.textContent='Profile '+(Object.keys(SPECIES).indexOf(key)+1);tag.classList.add('inactive');}
+  });
+  updateSetpointLabels();
+  db.ref('aquarium/controls').update({ species: sp });
+  addLog(`Species → ${SPECIES[sp].label}`);
+}
+
+/* ═══════════ ACTUATOR TOGGLE ═══════════ */
+function toggleActuator(actuator){
+  if (!manualMode) return;
+  const newState = !lastActuators[actuator];
+  db.ref('aquarium/controls').update({ [actuator]: newState });
+  lastActuators[actuator] = newState;
+  setAct(`act-${actuator}`, `badge-${actuator}`, newState);
+  addLog(`${actuator.charAt(0).toUpperCase()+actuator.slice(1)} → ${newState?'ON':'OFF'}`);
+  actuatorEvents++;
+  document.getElementById('stat-actuator').textContent=actuatorEvents;
+}
+
+/* ═══════════ UI HELPERS ═══════════ */
+function updateSetpointLabels(){
+  const sp=SPECIES[currentSpecies];
+  document.getElementById('sp-temp').textContent=`Target: ${sp.targetTemp} °C`;
+  document.getElementById('sp-tds').textContent=`Range: ${sp.tdsMin} – ${sp.tdsMax} ppm`;
+  document.getElementById('sp-turb').textContent=`Max: ${sp.maxTurbidity} NTU`;
+}
+
+// Fixed setRings — no recursive calls inside
+function setRings(ids, pct){
+  const off = 238.76 - (pct/100) * 238.76;
+  ids.forEach(id=>{
+    const r=document.getElementById('ring-'+id); if(r) r.style.strokeDashoffset=off;
+    const p=document.getElementById('pct-'+id);  if(p) p.textContent=pct+'%';
+  });
+}
+
+function setAct(rId,bId,on){
+  const r=document.getElementById(rId),b=document.getElementById(bId);
+  if(!r||!b)return;
+  r.classList.toggle('on',on); b.classList.toggle('on',on); b.textContent=on?'ON':'OFF';
+}
+function setSensor(vId,bId,html,pct,st){
+  const el=document.getElementById(vId);
+  if(el){el.innerHTML=html;el.className='sv'+(st==='danger'?' danger':st==='warn'?' warn':'');}
+  const bar=document.getElementById(bId);
+  if(bar) bar.style.width=Math.min(100,Math.max(0,pct))+'%';
+}
+function addLog(msg){
+  const t=new Date().toTimeString().slice(0,8);
+  logs.unshift({t,msg}); if(logs.length>40)logs.pop();
+  const c=document.getElementById('ai-log');
+  if(c) c.innerHTML=logs.map(e=>`<div class="log-e"><span class="log-t">${e.t}</span><span>${e.msg}</span></div>`).join('');
+}
+
+/* ═══════════ ALERTS ═══════════ */
+function pushAlert(level, message){
+  db.ref('aquarium/alerts').push({ ts: Date.now(), level, message });
+  addLog(`[${level}] ${message}`);
+}
+
+/* ═══════════ AI CHATBOT ═══════════ */
+function getSensorCtx(){
+  if(!lastSensorData) return 'No live sensor data available yet.';
+  const s=lastSensorData, sp=SPECIES[currentSpecies];
+  return `LIVE TANK STATE:
+- Active species: ${SPECIES[currentSpecies].label}
+- Temperature: ${s.temp?.toFixed(1)}°C (target: ${sp.targetTemp}°C ±${sp.hysteresis}°C)
+- TDS: ${Math.round(s.tds||0)} ppm (optimal: ${sp.tdsMin}–${sp.tdsMax} ppm)
+- Turbidity: ${(s.turbidity||0).toFixed(1)} NTU (max: ${sp.maxTurbidity} NTU)
+- Heater: ${lastActuators?.heat?'ON':'OFF'}, Filter: ${lastActuators?.filter?'ON':'OFF'}, Aerator: ${lastActuators?.air?'ON':'OFF'}
+- Control mode: ${manualMode?'MANUAL':'AUTO'}`;
+}
+function appendMsg(role,text){
+  const body=document.getElementById('chat-body');
+  const t=new Date().toTimeString().slice(0,8);
+  const d=document.createElement('div');
+  d.className=`msg msg-${role}`;
+  d.innerHTML=`<div class="msg-bubble">${text}</div><div class="msg-time">${t}</div>`;
+  body.appendChild(d); body.scrollTop=body.scrollHeight;
+}
+function showTyping(){
+  const body=document.getElementById('chat-body');
+  const d=document.createElement('div');
+  d.className='msg msg-ai'; d.id='typi';
+  d.innerHTML='<div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>';
+  body.appendChild(d); body.scrollTop=body.scrollHeight;
+}
+function hideTyping(){ const t=document.getElementById('typi'); if(t)t.remove(); }
+
+async function sendChat(){
+  if(isTyping) return;
+  const inp=document.getElementById('chat-input');
+  const text=inp.value.trim(); if(!text) return;
+  inp.value=''; isTyping=true;
+  appendMsg('user',text);
+  chatHistory.push({role:'user',content:text});
+  showTyping();
+  const sys=`You are AquaAI, an expert aquaculture AI assistant at STEM Gharbiya school.
+  ${getSensorCtx()}
+  Be concise and practical. Use technical accuracy for STEM students. Plain paragraphs only.`;
+  try{
+    const API_KEY="AIzaSyBopZsM9L_PovcvBnV0xCoelgIFCK4fN0M";
+    const API_URL=`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${API_KEY}`;
+    const contents=chatHistory.map(m=>({
+      role:m.role==='assistant'?'model':'user',
+      parts:[{text:m.content}]
+    }));
+    const res=await fetch(API_URL,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        system_instruction:{parts:[{text:sys}]},
+        contents,
+        generationConfig:{maxOutputTokens:1000,temperature:0.7}
+      })
+    });
+    const data=await res.json();
+    const reply=data.candidates?.[0]?.content?.parts?.[0]?.text||"I'm having trouble connecting to Gemini. Check your API key.";
+    hideTyping(); appendMsg('ai',reply);
+    chatHistory.push({role:'assistant',content:reply});
+    if(chatHistory.length>20) chatHistory.splice(0,2);
+  }catch(e){
+    console.error('Gemini Error:',e);
+    hideTyping(); appendMsg('ai','Connection error. Check your network.');
+  }
+  isTyping=false;
+}
+function askQ(q){ document.getElementById('chat-input').value=q; sendChat(); document.getElementById('ai-chat').scrollIntoView({behavior:'smooth'}); }
+
+/* ═══════════ AI INSIGHTS ═══════════ */
+async function generateInsights(s){
+  const now=Date.now(); if(now-lastInsightTime<30000) return;
+  lastInsightTime=now;
+  const sp=SPECIES[currentSpecies];
+  const prompt=`You are an aquaculture AI. Analyze these sensor readings for ${SPECIES[currentSpecies].label} and give ONE concise insight (2-3 sentences) about tank health and any immediate actions needed:\nTemp: ${s.temp?.toFixed(1)}°C (target ${sp.targetTemp}°C), TDS: ${Math.round(s.tds||0)} ppm (range ${sp.tdsMin}–${sp.tdsMax}), Turbidity: ${(s.turbidity||0).toFixed(1)} NTU (max ${sp.maxTurbidity}), Heater: ${lastActuators?.heat?'ON':'OFF'}, Filter: ${lastActuators?.filter?'ON':'OFF'}\nReply with ONLY the insight. No preamble.`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:180,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await res.json();
+    const ins=data.content?.[0]?.text;
+    if(ins){
+      document.getElementById('ai-insight-text').textContent=ins;
+      const spd=SPECIES[currentSpecies];
+      const tempOk=s.temp>=spd.targetTemp-spd.hysteresis&&s.temp<=spd.targetTemp+spd.hysteresis;
+      const tdsOk=s.tds>=spd.tdsMin&&s.tds<=spd.tdsMax;
+      const turbOk=(s.turbidity||0)<=spd.maxTurbidity;
+      const tags=[
+        {t:tempOk?'Temp ✓':'Temp ⚠',c:tempOk?'0,230,118':'255,77,77'},
+        {t:tdsOk?'TDS ✓':'TDS ⚠',c:tdsOk?'0,230,118':'255,152,0'},
+        {t:turbOk?'Clear ✓':'Turbid ⚠',c:turbOk?'0,212,255':'255,77,77'},
+      ];
+      document.getElementById('ai-insight-tags').innerHTML=tags.map(tg=>
+        `<span class="itag" style="background:rgba(${tg.c},.1);color:rgb(${tg.c});border:1px solid rgba(${tg.c},.25);">${tg.t}</span>`
+      ).join('');
+    }
+  }catch(e){}
+}
+
+/* ═══════════ CHARTS ═══════════ */
+const cOpts={
+  responsive:true, maintainAspectRatio:false, animation:{duration:350},
+  plugins:{legend:{display:false},tooltip:{
+    backgroundColor:'rgba(4,16,32,.95)',titleColor:'#f5c400',bodyColor:'#dde8f5',
+    borderColor:'rgba(245,196,0,.2)',borderWidth:1,
+    titleFont:{family:"'JetBrains Mono'",size:11},bodyFont:{family:"'Exo 2'",size:12}
+  }},
+  scales:{
+    x:{ticks:{color:'#8ea8c8',font:{family:"'JetBrains Mono'",size:9},maxTicksLimit:8},grid:{color:'rgba(245,196,0,.04)'},border:{color:'rgba(245,196,0,.08)'}},
+    y:{ticks:{color:'#8ea8c8',font:{family:"'JetBrains Mono'",size:9}},grid:{color:'rgba(245,196,0,.04)'},border:{color:'rgba(245,196,0,.08)'}}
+  }
+};
+function mkChart(id,rgb){
+  const ctx=document.getElementById(id).getContext('2d');
+  const g=ctx.createLinearGradient(0,0,0,210);
+  g.addColorStop(0,`rgba(${rgb},.2)`); g.addColorStop(1,`rgba(${rgb},0)`);
+  const hex=rgb==='245,196,0'?'#f5c400':rgb==='0,212,255'?'#00d4ff':'#00e676';
+  return new Chart(ctx,{type:'line',data:{labels:[],datasets:[{data:[],borderColor:hex,borderWidth:2,backgroundColor:g,fill:true,pointRadius:0,pointHoverRadius:4,tension:.4}]},options:JSON.parse(JSON.stringify(cOpts))});
+}
+const dbCharts={
+  temp: mkChart('chart-temp','245,196,0'),
+  tds:  mkChart('chart-tds','0,212,255'),
+  turb: mkChart('chart-turb','0,230,118')
+};
+
+/* ═══════════ PUSH ONE REAL POINT TO CHARTS (no full reload) ═══════════ */
+function pushLivePoint(temp, tds, turb){
+  const timeLabel = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  const values = { temp, tds, turb };
+  ['temp','tds','turb'].forEach(key => {
+    const chart = dbCharts[key];
+    chart.data.labels.push(timeLabel);
+    chart.data.datasets[0].data.push(values[key]);
+    // keep last 60 points
+    if(chart.data.labels.length > 60){
+      chart.data.labels.shift();
+      chart.data.datasets[0].data.shift();
+    }
+    chart.update('none');
+  });
+}
+
+/* ═══════════ FETCH HISTORY FROM FIREBASE (on load + range change) ═══════════ */
+function fetchHistory(){
+  const now = Date.now();
+  const ranges = {'1h':3600000,'6h':21600000,'24h':86400000,'7d':604800000};
+  const since = now - (ranges[currentRange] || 3600000);
+
+  db.ref('aquarium/history')
+    .orderByChild('ts')
+    .startAt(since)
+    .once('value', snapshot => {
+      const rows = [];
+      snapshot.forEach(child => rows.push(child.val()));
+
+      if(!rows.length){
+        // No Firebase history — show fake data if ESP also offline
+        if(!espConnected) generateFakeHistory();
+        return;
+      }
+
+      const labels = rows.map(r => {
+        const d = new Date(r.ts);
+        return currentRange === '7d'
+          ? d.toLocaleDateString([], {month:'short', day:'numeric'})
+          : d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      });
+
+      [['temp','temp'],['tds','tds'],['turb','turbidity']].forEach(([k,f]) => {
+        dbCharts[k].data.labels = labels;
+        dbCharts[k].data.datasets[0].data = rows.map(r => r[f]);
+        dbCharts[k].update('none');
+      });
+
+      document.getElementById('stat-readings').textContent = rows.length.toLocaleString();
+      addLog(`History loaded — ${rows.length} points from Firebase`);
+    });
+}
+
+/* ═══════════ FETCH ALERTS ═══════════ */
+function fetchAlerts(){
+  db.ref('aquarium/alerts')
+    .orderByChild('ts')
+    .limitToLast(50)
+    .once('value', snapshot => {
+      const alerts = [];
+      snapshot.forEach(child => alerts.push(child.val()));
+      alerts.reverse();
+
+      document.getElementById('stat-alerts').textContent = alerts.length;
+      document.getElementById('alert-count-badge').textContent =
+        `${alerts.length} ALERT${alerts.length!==1?'S':''}`;
+
+      const list = document.getElementById('alert-list');
+      if(!alerts.length){
+        list.innerHTML='<div class="no-alerts">✓ No alerts — system nominal</div>';
+        return;
+      }
+      list.innerHTML = alerts.map(a => {
+        const ts = new Date(a.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+        return `<div class="alert-item ${a.level}">
+          <span class="alert-level">${a.level}</span>
+          <span class="alert-msg">${a.message}</span>
+          <span class="alert-ts">${ts}</span>
+        </div>`;
+      }).join('');
+    });
+}
+
+function setRange(r,btn){
+  currentRange=r;
+  document.querySelectorAll('.range-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  fetchHistory();
+}
+
+function exportCSV(){
+  const now=Date.now();
+  const ranges={'1h':3600000,'6h':21600000,'24h':86400000,'7d':604800000};
+  const since=now-(ranges[currentRange]||3600000);
+  db.ref('aquarium/history').orderByChild('ts').startAt(since).once('value',snapshot=>{
+    const rows=[];
+    snapshot.forEach(child=>rows.push(child.val()));
+    const csv=['timestamp,temp,tds,turbidity,heat,filter,air',
+      ...rows.map(r=>`${new Date(r.ts).toISOString()},${r.temp},${r.tds},${r.turbidity},${r.heat},${r.filter},${r.air}`)
+    ].join('\n');
+    const blob=new Blob([csv],{type:'text/csv'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=`aquacore_${currentRange}.csv`;
+    a.click();
+    addLog(`CSV exported — ${currentRange.toUpperCase()}`);
+  });
+}
+
+/* ═══════════ FAKE DATA (only when ESP offline) ═══════════ */
+function generateFakeHistory(){
+  const now=Date.now();
+  const labels=[], tempData=[], tdsData=[], turbData=[];
+  for(let i=29;i>=0;i--){
+    const t=new Date(now - i*5*60*1000);
+    labels.push(t.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
+    tempData.push((30+(Math.random()-0.5)*4).toFixed(2));
+    tdsData.push((350+(Math.random()-0.5)*100).toFixed(2));
+    turbData.push((60+(Math.random()-0.5)*40).toFixed(2));
+  }
+  dbCharts.temp.data.labels=labels; dbCharts.temp.data.datasets[0].data=tempData; dbCharts.temp.update();
+  dbCharts.tds.data.labels=labels;  dbCharts.tds.data.datasets[0].data=tdsData;  dbCharts.tds.update();
+  dbCharts.turb.data.labels=labels; dbCharts.turb.data.datasets[0].data=turbData; dbCharts.turb.update();
+  document.getElementById('stat-readings').textContent='30 (simulated)';
+}
+
+function showFakeData(){
+  document.getElementById('conn-status').textContent='OFFLINE';
+  document.getElementById('status-pill').className='status-pill offline';
+  if(fakeInterval) return;
+  // First try to show real Firebase history — only use fake if nothing found
+  fetchHistory();
+  fakeInterval=setInterval(()=>{ if(!espConnected) generateFakeHistory(); },30000);
+  addLog('ESP32 offline — loading Firebase history (simulated fallback)');
+}
+
+function stopFakeData(){
+  if(fakeInterval){ clearInterval(fakeInterval); fakeInterval=null; }
+  addLog('ESP32 connected — switching to live data');
+}
+
+/* ═══════════ FIREBASE LISTENER (main data loop) ═══════════ */
+db.ref('aquarium/status').on('value', snapshot => {
+  const s = snapshot.val();
+
+  if(!s){
+    espConnected = false;
+    showFakeData();
+    return;
+  }
+
+  // ── ESP is online ──
+  if(!espConnected){
+    // First time coming online — reload history to merge old + new
+    espConnected = true;
+    stopFakeData();
+    fetchHistory();
+  }
+
+  lastSensorData = s;
+  const sp = SPECIES[currentSpecies];
+
+  // Connection UI
+  document.getElementById('conn-status').textContent='ONLINE';
+  document.getElementById('status-pill').className='status-pill';
+
+  // Sensors
+  const tPct = ((s.temp-15)/25)*100;
+  const tSt  = (s.temp < sp.targetTemp-2 || s.temp > sp.targetTemp+4) ? 'warn' : '';
+  setSensor('val-temp','bar-temp',`${s.temp.toFixed(1)}<span class="su">°C</span>`,tPct,tSt);
+
+  const dPct = (s.tds/1000)*100;
+  const dSt  = (s.tds < sp.tdsMin || s.tds > sp.tdsMax) ? 'warn' : '';
+  setSensor('val-tds','bar-tds',`${Math.round(s.tds)}<span class="su">ppm</span>`,dPct,dSt);
+
+  const turb = s.turbidity||0;
+  const uPct = (turb/500)*100;
+  const uSt  = turb > sp.maxTurbidity ? 'danger' : '';
+  setSensor('val-turb','bar-turb',`${turb.toFixed(1)}<span class="su">NTU</span>`,uPct,uSt);
+
+  // Actuators
+  lastActuators = { heat: s.heat, filter: s.filter, air: s.air };
+  setAct('act-heat','badge-heat',s.heat);
+  setAct('act-filter','badge-filter',s.filter);
+  setAct('act-air','badge-air',s.air);
+
+  // Health rings
+  setRings(['wifi','wifi2'], 90);
+  setRings(['temp','temp2'], Math.min(100, Math.round(tPct)));
+  setRings(['tds','tds2'],   Math.min(100, Math.round(dPct)));
+  setRings(['turb','turb2'], Math.min(100, Math.round(uPct)));
+
+  // Alerts (only fire once per out-of-range state)
+  if(tSt==='warn')   pushAlert('WARNING',  `Temperature ${s.temp.toFixed(1)}°C out of range for ${SPECIES[currentSpecies].label}`);
+  if(dSt==='warn')   pushAlert('WARNING',  `TDS ${Math.round(s.tds)} ppm out of range`);
+  if(uSt==='danger') pushAlert('CRITICAL', `Turbidity ${turb.toFixed(1)} NTU exceeds max ${sp.maxTurbidity}`);
+
+  // Timestamp
+  document.getElementById('ts').textContent=new Date().toTimeString().slice(0,8);
+
+  // ── Save to Firebase history (throttled: max once per 30s) ──
+  const now = Date.now();
+  if(now - lastHistoryWrite > 30000){
+    lastHistoryWrite = now;
+    db.ref('aquarium/history').push({
+      ts: now,
+      temp: s.temp,
+      tds: s.tds,
+      turbidity: turb,
+      heat: s.heat,
+      filter: s.filter,
+      air: s.air
+    });
+    // also update live charts with this new real point
+    pushLivePoint(s.temp, s.tds, turb);
+    document.getElementById('stat-readings').textContent =
+      (parseInt(document.getElementById('stat-readings').textContent)||0)+1;
+  } else {
+    // still push to live chart even if we skip DB write
+    pushLivePoint(s.temp, s.tds, turb);
+  }
+
+  // AI Insight
+  generateInsights(s);
+});
+
+/* ═══════════ INIT ═══════════ */
+document.getElementById('chat-init-time').textContent=new Date().toTimeString().slice(0,8);
+updateSetpointLabels();
+setMode('auto');
+addLog('AquaCore initialized — Tilapia profile loaded');
+fetchHistory();
+fetchAlerts();
+setInterval(fetchAlerts, 15000);
+setInterval(fetchHistory, 60000);
+</script>
+</body>
+</html>
