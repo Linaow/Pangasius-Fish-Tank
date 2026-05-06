@@ -9,11 +9,11 @@
 // ==============================================================================
 // CONFIGURATION
 // ==============================================================================
-const char* ssid     = "L";
-const char* password = "12345678";
+const char* ssid     = "";
+const char* password = "";
 
-#define DATABASE_URL    "fish-tankk-default-rtdb.europe-west1.firebasedatabase.app"
-#define DATABASE_SECRET "U5PnxnqjwxfIqPhroWzWEIOR8IFOggeeGCShQG6y"
+#define DATABASE_URL    "p"
+#define DATABASE_SECRET ""
 
 // ==============================================================================
 // PIN DEFINITIONS
