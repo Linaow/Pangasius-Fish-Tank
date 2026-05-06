@@ -814,12 +814,12 @@ let lastHistoryWrite=0;
 const logs=[];
 
 const firebaseConfig = {
-    apiKey: "AIzaSyBmAcqgjX-X7gaQR67_g-SrIu3iQIH8Vbo",
+    apiKey: "",
     authDomain: "pangasius-fish-tank.firebaseapp.com",
     projectId: "pangasius-fish-tank",
     storageBucket: "pangasius-fish-tank.firebasestorage.app",
-    messagingSenderId: "91041472291",
-    appId: "1:91041472291:web:41f1e81e8190c62361f696",
+    messagingSenderId: "",
+    appId: "",
     databaseURL: "https://fish-tankk-default-rtdb.europe-west1.firebasedatabase.app"
 };
 
@@ -971,7 +971,7 @@ async function sendChat(){
   ${getSensorCtx()}
   Be concise and practical. Use technical accuracy for STEM students. Plain paragraphs only.`;
   try{
-    const API_KEY="AIzaSyBopZsM9L_PovcvBnV0xCoelgIFCK4fN0M";
+    const API_KEY="";
     const API_URL=`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${API_KEY}`;
     const contents=chatHistory.map(m=>({
       role:m.role==='assistant'?'model':'user',
