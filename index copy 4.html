@@ -799,7 +799,7 @@ footer span{color:var(--gold);}
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <script>
 /* ═══════════ CONFIG ═══════════ */
-const NODE_RED = 'http://192.168.8.72:1880';
+const NODE_RED = '';
 const SPECIES = {
   pangasius:  { label:'Pangasius',  targetTemp:28.0, tdsMin:100, tdsMax:400, maxTurbidity:80,  hysteresis:1.0 },
   tilapia:    { label:'Tilapia',    targetTemp:30.0, tdsMin:200, tdsMax:500, maxTurbidity:100, hysteresis:2.0 },
@@ -814,7 +814,7 @@ let lastHistoryWrite=0;
 const logs=[];
 
 const firebaseConfig = {
-    apiKey: "",
+    apiKey: "########",
     authDomain: "pangasius-fish-tank.firebaseapp.com",
     projectId: "pangasius-fish-tank",
     storageBucket: "pangasius-fish-tank.firebasestorage.app",
@@ -971,7 +971,7 @@ async function sendChat(){
   ${getSensorCtx()}
   Be concise and practical. Use technical accuracy for STEM students. Plain paragraphs only.`;
   try{
-    const API_KEY="";
+    const API_KEY="##########";
     const API_URL=`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${API_KEY}`;
     const contents=chatHistory.map(m=>({
       role:m.role==='assistant'?'model':'user',
